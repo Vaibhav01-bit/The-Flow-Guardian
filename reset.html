@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset Your Flow</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      #lottie-animation {
+        width: 100%;
+        max-width: 400px;
+        height: 400px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      svg {
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body class="reset-page">
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+    </div>
+
+    <div class="reset-container">
+      <div class="breathing-canvas-wrap">
+        <div id="lottie-animation">
+          <canvas id="breathing-canvas" width="500" height="500" style="width: 350px; height: 350px;"></canvas>
+        </div>
+        <div id="breathing-text" class="breathing-text">Click start when you’re ready.</div>
+        <div id="captions" class="muted" style="min-height: 1.5rem; margin-bottom: 1rem; color: var(--teal-soft); font-weight: 500;"></div>
+        <div class="controls-wrap">
+          <button id="start-reset" class="button soft" style="width: auto; padding: 12px 32px; margin-bottom: 1rem;">Start Session</button>
+        </div>
+        <p class="muted">A simple breathing exercise to clear your mind and reset your flow.</p>
+        <a href="#" id="close-reset" class="close-link">I'm done, back to work</a>
+      </div>
+    </div>
+    <script src="reset.js"></script>
+  </body>
+</html>

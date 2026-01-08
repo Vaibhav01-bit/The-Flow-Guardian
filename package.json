@@ -1,0 +1,12 @@
+{
+  "name": "the-flow-guardian-icons",
+  "version": "1.0.0",
+  "description": "Icon generation helper for The Flow Guardian extension",
+  "main": "generate-icons.js",
+  "scripts": {
+    "generate-icons": "node generate-icons.js"
+  },
+  "dependencies": {
+    "sharp": "^0.32.0"
+  }
+}

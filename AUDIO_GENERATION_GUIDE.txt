@@ -1,0 +1,186 @@
+AUDIO GENERATION GUIDE
+Natural, Human-Sounding Guided Meditation Voice
+
+==============================================================================
+RECOMMENDED OPTION 1: ElevenLabs (BEST for natural voice quality)
+==============================================================================
+
+Why ElevenLabs:
+✓ Studio-quality, natural human voice
+✓ No robotic artifacts
+✓ Supports voice modulation (warmth, calmness)
+✓ Breathing/pausing control
+✓ Excellent for meditation narration
+
+STEPS:
+
+1. Go to https://elevenlabs.io
+2. Sign up (free tier available for initial testing)
+3. In Dashboard → Click "Text to Speech"
+
+4. VOICE SELECTION:
+   - Choose "Bella" or "Rachel" (warm, calm, female voices)
+   - OR "Adam" or "Ethan" (warm male voices)
+   - Test each to find the warmest option
+
+5. VOICE SETTINGS (Critical):
+   Stability: 0.65 (allows natural variation, not flat)
+   Similarity: 0.75 (natural prosody, not over-processed)
+   Emphasis: ON (for natural phrasing)
+
+6. STYLE (if available):
+   - Narrative or Meditation style
+   - Expressiveness: 1.5-2.0 (gentle emotion)
+   - Speaker Boost: ON (more natural)
+
+7. SCRIPT INPUT:
+   Paste the meditation script exactly as written
+   ElevenLabs will generate with natural breathing pauses
+
+8. AUDIO SETTINGS:
+   Format: MP3 or WAV (WAV preferred for editing)
+   Sample Rate: 44.1kHz or 48kHz (studio quality)
+
+9. GENERATE & DOWNLOAD
+
+10. TIMING VERIFICATION:
+    Use audio editor (Audacity - free) to verify timing matches captions
+    Adjust silence/breath gaps if needed to sync with .srt/.vtt files
+
+==============================================================================
+RECOMMENDED OPTION 2: Google Cloud TTS (Good alternative)
+==============================================================================
+
+1. Go to https://cloud.google.com/text-to-speech
+2. Create account and enable Text-to-Speech API
+
+3. VOICE SELECTION:
+   Language: English (US)
+   Voice: Select "Standard" voices first:
+   - "en-US-Neural2-C" (female, warm)
+   - "en-US-Neural2-A" (female, calm)
+   - "en-US-Neural2-E" (male, calm)
+
+4. AUDIO CONFIG:
+   Audio Encoding: MP3 or OGG
+   Speaking Rate: 0.80 (slow, meditative pace)
+   Pitch: -2.0 to 0.0 (slightly lower, calmer tone)
+
+5. VOICE PROFILE (if using Studio version):
+   Effect Profile: "large_room_echo" (removes clinical tone)
+
+6. Generate audio via API or web interface
+
+==============================================================================
+RECOMMENDED OPTION 3: Azure Cognitive Services TTS
+==============================================================================
+
+1. Create Azure account and Text-to-Speech resource
+2. Use Speech Synthesizer
+
+3. VOICE SELECTION:
+   English (US):
+   - "en-US-AvaNeural" (warm, calm, female)
+   - "en-US-JennyNeural" (friendly, warm)
+   - "en-US-GuyNeural" (calm, male)
+
+4. SSML PARAMETERS (for precise control):
+   ```xml
+   <speak>
+     <voice name="en-US-AvaNeural">
+       <prosody rate="0.90" pitch="-20%">
+         [Your text here with pauses]
+       </prosody>
+     </voice>
+   </speak>
+   ```
+
+5. AUDIO OUTPUT:
+   Format: PCM WAV (high quality)
+   Sample Rate: 48000 Hz
+
+==============================================================================
+MANUAL TIMING SYNCHRONIZATION
+==============================================================================
+
+AFTER generating audio from any service:
+
+1. Download Audio Editor: Audacity (free, open-source)
+   https://www.audacityteam.org/
+
+2. Import your generated MP3/WAV into Audacity
+
+3. Open your .srt or .vtt file as reference
+
+4. Manually adjust:
+   - Add silence between phrases to match caption timing
+   - Ensure "Inhale slowly through your nose… two… three… four…"
+     takes exactly 4 seconds (per script timing)
+   - Ensure "two… three… four… five… six." takes exactly 6 seconds
+   - Pause gaps should match caption timings
+
+5. Export as:
+   - MP3 (for web/mobile)
+   - WAV (for archival/editing)
+   - Keep original for backup
+
+==============================================================================
+FINAL CHECKLIST
+==============================================================================
+
+Audio Quality:
+□ No robotic artifacts or synthetic sound
+□ Natural human prosody with gentle emotion
+□ Soft breath sounds between phrases (not removed)
+□ Warm, calm, reassuring tone throughout
+□ Slow, meditative pacing (not rushed)
+□ Studio-quality clarity, no distortion
+□ No background noise
+
+Synchronization:
+□ Audio matches script word-for-word (no ad-libbing)
+□ Captions (.srt/.vtt) match audio timing
+□ No missing or added words
+□ Breathing guidance timing correct:
+   - Inhale: 4 seconds
+   - Pause: 1 second
+   - Exhale: 6 seconds
+□ Total duration: ~80 seconds
+
+Speaking Style:
+□ Sounds like yoga/mindfulness instructor
+□ Soft, warm, human voice quality
+□ Calm and reassuring tone
+□ Slightly smiling (warmth in voice)
+□ Natural pauses preserved
+□ Gentle emotion without over-acting
+
+==============================================================================
+VOICE PARAMETER QUICK REFERENCE
+==============================================================================
+
+For WARM, CALM tone across services:
+
+ElevenLabs:
+  Stability: 0.65 | Similarity: 0.75
+  Voices: Bella, Rachel, Adam, Ethan
+
+Google Cloud:
+  Speaking Rate: 0.80 | Pitch: -2.0 to -1.0
+  Voices: Neural2-C or Neural2-A (female)
+
+Azure:
+  Rate: 0.90 | Pitch: -20%
+  Voices: AvaNeural or JennyNeural
+
+==============================================================================
+EXPECTED RESULT
+==============================================================================
+
+Total audio file: ~80-90 seconds
+Format: MP3 or WAV, 44.1kHz-48kHz
+File size: 1-3 MB (MP3) or 5-10 MB (WAV)
+Voice: Natural human, warm, calm, yoga instructor quality
+Sync: Perfectly matched to provided .srt and .vtt captions
+
+==============================================================================
