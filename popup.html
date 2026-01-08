@@ -34,6 +34,42 @@
             Start Micro-Reset
           </button>
         </div>
+
+        <!-- Settings Section -->
+        <div class="settings-section">
+          <button id="settings-toggle" class="settings-toggle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v6m0 6v6m5.66-13L13 9.64m-2 4.72L6.34 19M23 12h-6m-6 0H1m13-5.66L9.64 11m-4.72 2L1 17.66M23 12l-4.34-5.66L13 11m0 2l5.66 4.34"></path>
+            </svg>
+            <span>Preferences</span>
+          </button>
+
+          <div id="settings-panel" class="settings-panel" style="display: none;">
+            <div class="setting-group">
+              <label class="setting-label">Quote Style</label>
+              <select id="quote-style" class="setting-select">
+                <option value="calm">Calm</option>
+                <option value="encouraging">Encouraging</option>
+                <option value="minimal">Minimal</option>
+                <option value="off">Off</option>
+              </select>
+              <p class="setting-hint">Choose the tone of motivational messages</p>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">Ambient Sound</label>
+              <div class="setting-toggle-wrapper">
+                <input type="checkbox" id="ambient-sound" class="setting-checkbox">
+                <label for="ambient-sound" class="toggle-label">
+                  <span class="toggle-switch"></span>
+                </label>
+                <span class="toggle-text">Off</span>
+              </div>
+              <p class="setting-hint">Subtle background audio during reset</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <script src="popup.js"></script>

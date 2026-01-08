@@ -5,6 +5,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const fatigueStateTextEl = document.getElementById('fatigue-state-text');
   const fatigueRingEl = document.getElementById('fatigue-ring');
   const resetButton = document.getElementById('reset-button');
+  const settingsToggle = document.getElementById('settings-toggle');
+  const settingsPanel = document.getElementById('settings-panel');
+  const quoteStyleSelect = document.getElementById('quote-style');
+  const ambientSoundCheckbox = document.getElementById('ambient-sound');
+  const toggleText = document.querySelector('.toggle-text');
+
+  // Load settings
+  chrome.storage.local.get(['quoteStyle', 'ambientSound'], (result) => {
+    if (quoteStyleSelect) {
+      quoteStyleSelect.value = result.quoteStyle || 'calm';
+    }
+    if (ambientSoundCheckbox) {
+      ambientSoundCheckbox.checked = result.ambientSound || false;
+      updateToggleText(result.ambientSound || false);
+    }
+  });
+
+  // Settings toggle
+  if (settingsToggle) {
+    settingsToggle.addEventListener('click', () => {
+      const isVisible = settingsPanel.style.display !== 'none';
+      settingsPanel.style.display = isVisible ? 'none' : 'block';
+    });
+  }
+
+  // Quote style change
+  if (quoteStyleSelect) {
+    quoteStyleSelect.addEventListener('change', (e) => {
+      chrome.storage.local.set({ quoteStyle: e.target.value });
+    });
+  }
+
+  // Ambient sound toggle
+  if (ambientSoundCheckbox) {
+    ambientSoundCheckbox.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      chrome.storage.local.set({ ambientSound: enabled });
+      updateToggleText(enabled);
+    });
+  }
+
+  function updateToggleText(enabled) {
+    if (toggleText) {
+      toggleText.textContent = enabled ? 'On' : 'Off';
+    }
+  }
 
   function requestState() {
     chrome.runtime.sendMessage({ type: 'getFatigueState' }, (response) => {

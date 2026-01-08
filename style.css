@@ -542,3 +542,226 @@ body.reset-page {
   max-width: 400px;
   margin: 0 auto;
 }
+
+/* Settings Section */
+.settings-section {
+  margin-top: 24px;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 20px;
+}
+
+.settings-toggle {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.settings-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.settings-toggle svg {
+  opacity: 0.7;
+}
+
+.settings-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+}
+
+.setting-group {
+  margin-bottom: 20px;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.setting-select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setting-select:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--teal-soft);
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: var(--teal-soft);
+  box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.1);
+}
+
+.setting-hint {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.setting-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.setting-checkbox {
+  display: none;
+}
+
+.toggle-label {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--glass-border);
+}
+
+.toggle-switch {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.setting-checkbox:checked + .toggle-label {
+  background: var(--teal-soft);
+  border-color: var(--teal-soft);
+}
+
+.setting-checkbox:checked + .toggle-label .toggle-switch {
+  transform: translateX(20px);
+  background: white;
+}
+
+.toggle-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.setting-checkbox:checked ~ .toggle-text {
+  color: var(--teal-soft);
+}
+
+/* Session Completion Feedback */
+.completion-message {
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  opacity: 0;
+  text-align: center;
+  max-width: 500px;
+  padding: 24px;
+  transition: opacity 1s ease-in-out;
+  pointer-events: none;
+}
+
+.completion-message.show {
+  opacity: 0.85;
+}
+
+/* Completion Actions */
+.completion-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+  margin-top: 8px;
+}
+
+.completion-actions.show {
+  opacity: 1;
+}
+
+.action-button {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(79, 209, 197, 0.3);
+  background: rgba(79, 209, 197, 0.08);
+  color: var(--teal-soft);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.action-button:hover {
+  background: rgba(79, 209, 197, 0.15);
+  border-color: rgba(79, 209, 197, 0.5);
+  transform: translateY(-2px);
+}
+
+.action-button.action-secondary {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+}
+
+.action-button.action-secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: var(--text-primary);
+}
+
+/* Page fade out animation */
+body.fade-out-page {
+  animation: fade-out-body 1s ease-out forwards;
+}
+
+@keyframes fade-out-body {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
