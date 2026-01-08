@@ -10,7 +10,7 @@
   const TOTAL_CYCLE = BREATH_IN + HOLD + BREATH_OUT; // 16 seconds - Very calm / anxiety relief pattern
   const MAX_CYCLES = 4;
 
-  let canvas, ctx, breathingText, captionEl, breathGlow;
+  let canvas, ctx, breathingText, captionEl, breathGlow, quoteEl;
   let animationFrameId;
   let isActive = false;
   let startTime = 0;
@@ -18,6 +18,27 @@
   let lastState = '';
   let speechVoices = [];
   let progressDots = [];
+  let quoteInterval = null;
+  let currentQuoteIndex = 0;
+
+  // Calm, supportive quotes (5-10 words each)
+  const quotes = [
+    "Slow down. You are safe.",
+    "Breathe. This moment is enough.",
+    "Rest is part of progress.",
+    "Calm brings clarity.",
+    "One breath at a time.",
+    "You are exactly where you need to be.",
+    "Trust the pace of your own growth.",
+    "Stillness is a form of strength.",
+    "Let go of what you cannot control.",
+    "Peace begins with a single breath.",
+    "You deserve this moment of rest.",
+    "Gentle progress is still progress.",
+    "Your well-being matters.",
+    "Breathe in calm, breathe out tension.",
+    "This pause will serve you well."
+  ];
 
   document.addEventListener('DOMContentLoaded', init);
 
@@ -38,6 +59,7 @@
     canvas = document.getElementById('breathing-canvas');
     breathingText = document.getElementById('breathing-text');
     captionEl = document.getElementById('captions');
+    quoteEl = document.getElementById('motivational-quote');
     breathGlow = document.querySelector('.breath-glow');
     const startBtn = document.getElementById('start-reset');
     const skipBtn = document.getElementById('skip-reset');
@@ -103,14 +125,17 @@
       currentCycleCount = 0;
       lastState = '';
       
+      // Start quote rotation when session starts
+      startQuoteRotation();
+      
       // Update text smoothly
       updateBreathingText("Let's begin", true);
-      speak("Breathe with me.");
       
-      // Start animation
-      setTimeout(() => {
+      // Speak introduction with proper timing
+      speakWithPause("Let's begin.", 2000, () => {
+        // After pause, start breathing animation
         animate();
-      }, 1000);
+      });
     });
 
     // Skip button handler
@@ -124,6 +149,12 @@
       e.preventDefault();
       isActive = false;
       cancelAnimationFrame(animationFrameId);
+      
+      // Clear quote rotation
+      if (quoteInterval) {
+        clearInterval(quoteInterval);
+      }
+      
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -133,7 +164,7 @@
       window.close();
     });
 
-    draw(0, 'Rest'); // Initial draw
+    draw(0, 'Inhale'); // Initial draw
   }
 
   function updateBreathingText(text, smooth = true) {
@@ -167,6 +198,13 @@
   function completeSession() {
     isActive = false;
     cancelAnimationFrame(animationFrameId);
+    
+    // Clear quote rotation
+    if (quoteInterval) {
+      clearInterval(quoteInterval);
+      quoteInterval = null;
+    }
+    
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -180,7 +218,46 @@
     }
   }
 
-  function speak(text) {
+  function startQuoteRotation() {
+    if (!quoteEl) return;
+    
+    // Show first quote
+    showQuote(0);
+    
+    // Rotate quotes every 8 seconds (longer visibility)
+    quoteInterval = setInterval(() => {
+      currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+      showQuote(currentQuoteIndex);
+    }, 8000);
+  }
+
+  function showQuote(index) {
+    if (!quoteEl) return;
+    
+    // If this is the first quote, show it immediately without fade
+    if (index === 0 && !quoteEl.textContent) {
+      quoteEl.textContent = quotes[index];
+      quoteEl.style.opacity = '0.75';
+      return;
+    }
+    
+    // Fade out current quote (1s)
+    quoteEl.classList.add('fade-out');
+    
+    // After fade out, change text and fade in (1s)
+    setTimeout(() => {
+      quoteEl.textContent = quotes[index];
+      quoteEl.classList.remove('fade-out');
+      quoteEl.classList.add('fade-in');
+      
+      // Remove fade-in class after transition
+      setTimeout(() => {
+        quoteEl.classList.remove('fade-in');
+      }, 1000);
+    }, 1000);
+  }
+
+  function speak(text, onEnd = null) {
     // Guard against unavailable Speech Synthesis API
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel(); // Stop current
@@ -201,13 +278,32 @@
       utterance.rate = 0.75;  // Slower for calm, natural pacing
       utterance.pitch = 1.0;  // Natural pitch
       utterance.volume = 0.9; // Slightly softer
+      
+      // Call onEnd callback when speech finishes
+      if (onEnd) {
+        utterance.onend = onEnd;
+      }
+      
       window.speechSynthesis.speak(utterance);
+    } else if (onEnd) {
+      // If no speech synthesis, still call the callback
+      onEnd();
     }
     
     // Guard against missing caption element
     if (captionEl) {
       captionEl.textContent = text;
     }
+  }
+
+  function speakWithPause(text, pauseDuration, callback) {
+    // Speak the text
+    speak(text, () => {
+      // After speaking finishes, wait for the pause duration
+      setTimeout(() => {
+        if (callback) callback();
+      }, pauseDuration);
+    });
   }
 
   function animate() {
