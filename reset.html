@@ -5,40 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Reset Your Flow</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-      #lottie-animation {
-        width: 100%;
-        max-width: 400px;
-        height: 400px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      svg {
-        max-width: 100%;
-        height: auto;
-      }
-    </style>
   </head>
   <body class="reset-page">
-    <div class="bg-blobs">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
+    <!-- Ambient Background Effects -->
+    <div class="ambient-background">
+      <div class="gradient-shift"></div>
+      <div class="floating-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+      </div>
     </div>
 
     <div class="reset-container">
+      <!-- Progress Indicator -->
+      <div class="progress-indicator">
+        <div class="progress-dots">
+          <div class="progress-dot active"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+          <div class="progress-dot"></div>
+        </div>
+      </div>
+
       <div class="breathing-canvas-wrap">
-        <div id="lottie-animation">
-          <canvas id="breathing-canvas" width="500" height="500" style="width: 350px; height: 350px;"></canvas>
+        <!-- Animated Breathing Guide -->
+        <div class="animation-container">
+          <div class="breath-glow"></div>
+          <canvas id="breathing-canvas" width="500" height="500"></canvas>
         </div>
-        <div id="breathing-text" class="breathing-text">Click start when you’re ready.</div>
-        <div id="captions" class="muted" style="min-height: 1.5rem; margin-bottom: 1rem; color: var(--teal-soft); font-weight: 500;"></div>
+
+        <!-- Instruction Text -->
+        <div id="breathing-text" class="breathing-text">Take a moment to reset</div>
+        <div id="captions" class="captions-text"></div>
+
+        <!-- Action Buttons -->
         <div class="controls-wrap">
-          <button id="start-reset" class="button soft" style="width: auto; padding: 12px 32px; margin-bottom: 1rem;">Start Session</button>
+          <button id="start-reset" class="button-primary">
+            <span class="button-text">Start Micro-Reset</span>
+            <span class="button-subtext">30 seconds of calm</span>
+          </button>
+          <button id="skip-reset" class="button-skip" style="display: none;">
+            I'm calm now
+          </button>
         </div>
-        <p class="muted">A simple breathing exercise to clear your mind and reset your flow.</p>
-        <a href="#" id="close-reset" class="close-link">I'm done, back to work</a>
+
+        <!-- Supportive Message -->
+        <p class="supportive-text">You deserve this moment of peace</p>
+
+        <!-- Close Link -->
+        <a href="#" id="close-reset" class="close-link">Back to work</a>
       </div>
     </div>
     <script src="reset.js"></script>
