@@ -6,8 +6,10 @@
 
 ## Preview
 
-![Screenshot 1](assets/Screenshot%202026-01-15%20135421.png)
-![Screenshot 2](assets/Screenshot%202026-01-15%20140213.png)
+<p align="center">
+  <img alt="Screenshot 1" width="45%" src="assets/Screenshot%202026-01-15%20135421.png">
+  <img alt="Screenshot 2" width="45%" src="assets/Screenshot%202026-01-15%20140213.png">
+</p>
 
 ## Description
 
