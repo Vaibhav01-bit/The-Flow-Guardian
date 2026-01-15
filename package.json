@@ -5,8 +5,5 @@
   "main": "generate-icons.js",
   "scripts": {
     "generate-icons": "node generate-icons.js"
-  },
-  "dependencies": {
-    "sharp": "^0.32.0"
   }
 }
