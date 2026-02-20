@@ -1,29 +1,88 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reset Your Flow</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body class="reset-page">
-    <!-- Ambient Background Effects -->
-    <div class="ambient-background">
-      <div class="gradient-shift"></div>
-      <div class="floating-particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reset Your Flow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="reset-page" data-theme="forest-calm">
+
+  <!-- Ambient Background -->
+  <div class="ambient-background">
+    <div class="gradient-shift"></div>
+    <div class="floating-particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+  </div>
+
+  <div class="reset-container">
+
+    <!-- ── STEP 1: Mood Check ──────────────────────────────── -->
+    <div id="step-mood" class="reset-step">
+      <h2 class="step-title">How are you feeling?</h2>
+      <p class="step-subtitle">A moment of honest check-in</p>
+      <div class="mood-grid">
+        <button class="mood-btn" data-mood="happy">
+          <span class="mood-emoji">🙂</span>
+          <span class="mood-label">Good</span>
+        </button>
+        <button class="mood-btn" data-mood="neutral">
+          <span class="mood-emoji">😐</span>
+          <span class="mood-label">Okay</span>
+        </button>
+        <button class="mood-btn" data-mood="tired">
+          <span class="mood-emoji">😞</span>
+          <span class="mood-label">Tired</span>
+        </button>
+        <button class="mood-btn" data-mood="overwhelmed">
+          <span class="mood-emoji">😵</span>
+          <span class="mood-label">Overwhelmed</span>
+        </button>
+      </div>
+      <button class="step-skip-link" id="skip-mood">Skip</button>
+    </div>
+
+    <!-- ── STEP 2: Reset Type ──────────────────────────────── -->
+    <div id="step-type" class="reset-step" style="display:none;">
+      <h2 class="step-title">What kind of reset?</h2>
+      <p class="step-subtitle" id="reset-type-hint">Choose what your body needs</p>
+      <div class="reset-type-grid">
+        <button class="reset-type-btn" data-type="eye">
+          <span class="type-emoji">👁️</span>
+          <span class="type-name">Eye Reset</span>
+          <span class="type-desc">Rest your eyes</span>
+        </button>
+        <button class="reset-type-btn" data-type="stretch">
+          <span class="type-emoji">🧘</span>
+          <span class="type-name">Stretch</span>
+          <span class="type-desc">Release tension</span>
+        </button>
+        <button class="reset-type-btn" data-type="mental">
+          <span class="type-emoji">🧠</span>
+          <span class="type-name">Mental</span>
+          <span class="type-desc">Clear the clutter</span>
+        </button>
+        <button class="reset-type-btn" data-type="energy">
+          <span class="type-emoji">⚡</span>
+          <span class="type-name">Energy</span>
+          <span class="type-desc">Re-energize</span>
+        </button>
       </div>
     </div>
 
-    <div class="reset-container">
-      <!-- Progress Indicator -->
+    <!-- ── STEP 3: Breathing Session ─────────────────────── -->
+    <div id="step-breathe" class="reset-step" style="display:none;">
+      <!-- Progress dots -->
       <div class="progress-indicator">
         <div class="progress-dots">
           <div class="progress-dot"></div>
@@ -33,48 +92,41 @@
         </div>
       </div>
 
+      <!-- Reset type label -->
+      <div class="active-type-label" id="active-type-label"></div>
+
+      <!-- Breathing canvas -->
       <div class="breathing-canvas-wrap">
-        <!-- Animated Breathing Guide -->
         <div class="animation-container">
-          <div class="breath-glow"></div>
+          <div class="breath-glow" id="breath-glow"></div>
           <canvas id="breathing-canvas" width="500" height="500"></canvas>
         </div>
 
-        <!-- Instruction Text -->
         <div id="breathing-text" class="breathing-text">Take a moment to reset</div>
         <div id="captions" class="captions-text"></div>
-        
-        <!-- Motivational Quote -->
         <div id="motivational-quote" class="motivational-quote"></div>
 
-        <!-- Action Buttons -->
         <div class="controls-wrap">
           <button id="start-reset" class="button-primary">
-            <span class="button-text">Start Micro-Reset</span>
+            <span class="button-text">Start Reset</span>
             <span class="button-subtext">A moment of calm</span>
           </button>
-          <button id="skip-reset" class="button-skip" style="display: none;">
-            I'm calm now
-          </button>
+          <button id="skip-reset" class="button-skip" style="display:none;">I'm calm now</button>
         </div>
 
-        <!-- Completion Actions (shown after session) -->
-        <div id="completion-actions" class="completion-actions" style="display: none;">
-          <button id="return-to-work" class="action-button">
-            Return to work
-          </button>
-          <button id="another-breath" class="action-button action-secondary">
-            Another breath
-          </button>
+        <div id="completion-actions" class="completion-actions" style="display:none;">
+          <button id="return-to-work" class="action-button">Return to work</button>
+          <button id="another-breath" class="action-button action-secondary">Another breath</button>
         </div>
 
-        <!-- Supportive Message -->
         <p class="supportive-text">You deserve this moment of peace</p>
-
-        <!-- Close Link -->
         <a href="#" id="close-reset" class="close-link">Back to work</a>
       </div>
     </div>
-    <script src="reset.js"></script>
-  </body>
+
+  </div>
+
+  <script src="reset.js"></script>
+</body>
+
 </html>

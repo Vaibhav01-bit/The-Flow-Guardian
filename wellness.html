@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wellness Reset · Flow Guardian</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="wellness.css">
+</head>
+
+<body>
+
+    <!-- ══════════════  AMBIENT LAYER  ══════════════ -->
+    <div class="ambient" aria-hidden="true">
+        <div class="ambient__orb ambient__orb--1"></div>
+        <div class="ambient__orb ambient__orb--2"></div>
+        <div class="ambient__orb ambient__orb--3"></div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <!-- ══════════════  APP WRAPPER  ══════════════ -->
+    <div class="app" id="app">
+
+        <!-- ───────── HOME SCREEN ───────── -->
+        <section class="screen screen--home" id="screen-home">
+            <header class="home-header">
+                <div class="logo">🌿</div>
+                <h1 class="home-title">Wellness Reset</h1>
+                <p class="home-subtitle">Choose your reset type and return stronger</p>
+            </header>
+
+            <div class="cards-grid">
+
+                <!-- Eye Reset -->
+                <button class="card" data-section="eye" aria-label="Eye Reset">
+                    <div class="card__glow"></div>
+                    <div class="card__icon-wrap">
+                        <span class="card__icon" aria-hidden="true">👁️</span>
+                    </div>
+                    <div class="card__body">
+                        <h2 class="card__title">Eye Reset</h2>
+                        <p class="card__desc">Reduce eye strain &amp; restore focus</p>
+                    </div>
+                    <div class="card__meta">
+                        <span class="card__tag">20–60s</span>
+                        <svg class="card__arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Stretch -->
+                <button class="card" data-section="stretch" aria-label="Stretch">
+                    <div class="card__glow"></div>
+                    <div class="card__icon-wrap">
+                        <span class="card__icon" aria-hidden="true">🧘</span>
+                    </div>
+                    <div class="card__body">
+                        <h2 class="card__title">Stretch</h2>
+                        <p class="card__desc">Release tension, reset your posture</p>
+                    </div>
+                    <div class="card__meta">
+                        <span class="card__tag">30s–2min</span>
+                        <svg class="card__arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Mental -->
+                <button class="card" data-section="mental" aria-label="Mental Reset">
+                    <div class="card__glow"></div>
+                    <div class="card__icon-wrap">
+                        <span class="card__icon" aria-hidden="true">🧠</span>
+                    </div>
+                    <div class="card__body">
+                        <h2 class="card__title">Mental</h2>
+                        <p class="card__desc">Clear the noise, breathe, realign</p>
+                    </div>
+                    <div class="card__meta">
+                        <span class="card__tag">60s</span>
+                        <svg class="card__arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Energy -->
+                <button class="card" data-section="energy" aria-label="Energy Reset">
+                    <div class="card__glow"></div>
+                    <div class="card__icon-wrap">
+                        <span class="card__icon" aria-hidden="true">⚡</span>
+                    </div>
+                    <div class="card__body">
+                        <h2 class="card__title">Energy</h2>
+                        <p class="card__desc">Wake up, move, re-energize fast</p>
+                    </div>
+                    <div class="card__meta">
+                        <span class="card__tag">45–90s</span>
+                        <svg class="card__arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </button>
+
+            </div>
+
+            <footer class="home-footer">
+                <button class="btn-ghost" id="btn-back-home">← Back to work</button>
+            </footer>
+        </section>
+
+        <!-- ═══════════════════════════════════════════
+       👁️  EYE RESET SECTION
+  ═══════════════════════════════════════════ -->
+        <section class="screen screen--section screen--eye" id="screen-eye" style="display:none">
+            <div class="section-inner">
+
+                <button class="btn-back" data-target="home">
+                    <svg viewBox="0 0 16 16" fill="none">
+                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                    Back
+                </button>
+
+                <div class="section-hero">
+                    <div class="hero-icon eye-icon-anim">👁️</div>
+                    <h2 class="section-title">Eye Reset</h2>
+                    <p class="section-desc">Rest your eyes with the 20-20-20 rule — look 20 ft away for 20 seconds,
+                        blink 20 times to rehydrate.</p>
+                </div>
+
+                <!-- SUB TOOLS -->
+                <div class="tool-tabs" id="eye-tabs">
+                    <button class="tool-tab tool-tab--active" data-eye-tab="2020">20-20-20</button>
+                    <button class="tool-tab" data-eye-tab="blink">Blink Guide</button>
+                    <button class="tool-tab" data-eye-tab="movement">Eye Movement</button>
+                    <button class="tool-tab" data-eye-tab="dim">Soft Focus</button>
+                </div>
+
+                <!-- 20-20-20 panel -->
+                <div class="tool-panel" id="eye-panel-2020" style="display:flex">
+                    <div class="ring-timer" id="eye-2020-ring">
+                        <svg class="ring-svg" viewBox="0 0 120 120">
+                            <circle class="ring-track" cx="60" cy="60" r="52" />
+                            <circle class="ring-fill" id="eye-2020-fill" cx="60" cy="60" r="52" />
+                        </svg>
+                        <div class="ring-inner">
+                            <span class="ring-value" id="eye-2020-val">20</span>
+                            <span class="ring-unit">sec</span>
+                        </div>
+                    </div>
+                    <p class="tool-instruction" id="eye-2020-inst">Look at something 20 feet (6m) away</p>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="eye-2020-start">▶ Start</button>
+                        <button class="btn-sound" id="eye-sound-toggle" title="Toggle sound">🔔</button>
+                    </div>
+                </div>
+
+                <!-- Blink panel -->
+                <div class="tool-panel" id="eye-panel-blink" style="display:none">
+                    <div class="blink-anim-wrap">
+                        <div class="blink-eye" id="blink-eye">
+                            <div class="blink-lid blink-lid--top"></div>
+                            <div class="blink-pupil"></div>
+                            <div class="blink-lid blink-lid--bottom"></div>
+                        </div>
+                        <p class="blink-label" id="blink-label">Ready to blink</p>
+                    </div>
+                    <div class="blink-counter">
+                        <span class="blink-count" id="blink-count">0</span>
+                        <span class="blink-count-label">/ 20 blinks</span>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="blink-start">▶ Start Guide</button>
+                        <button class="btn-primary btn-secondary" id="blink-manual">Blink!</button>
+                    </div>
+                </div>
+
+                <!-- Eye movement panel -->
+                <div class="tool-panel" id="eye-panel-movement" style="display:none">
+                    <div class="eye-move-field" id="eye-move-field">
+                        <div class="eye-move-dot" id="eye-move-dot"></div>
+                        <div class="move-instructions">Follow the dot</div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="eye-move-start">▶ Start</button>
+                        <button class="btn-primary btn-secondary" id="eye-move-stop" style="display:none">⏹
+                            Stop</button>
+                    </div>
+                </div>
+
+                <!-- Soft focus / dim panel -->
+                <div class="tool-panel" id="eye-panel-dim" style="display:none">
+                    <div class="dim-card">
+                        <div class="dim-orb" id="dim-orb"></div>
+                        <p class="dim-instruction">Relax your eyes onto this soft field.<br>Let your focus go gently
+                            unfocused.</p>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="feature-toggle">
+                            <input type="checkbox" id="toggle-dim" />
+                            <span class="toggle-track"></span>
+                            <span class="toggle-label">Screen dim overlay</span>
+                        </label>
+                        <label class="feature-toggle">
+                            <input type="checkbox" id="toggle-bluelight" />
+                            <span class="toggle-track"></span>
+                            <span class="toggle-label">Blue-light warm filter</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════
+       🧘  STRETCH SECTION
+  ═══════════════════════════════════════════ -->
+        <section class="screen screen--section screen--stretch" id="screen-stretch" style="display:none">
+            <div class="section-inner">
+
+                <button class="btn-back" data-target="home">
+                    <svg viewBox="0 0 16 16" fill="none">
+                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                    Back
+                </button>
+
+                <div class="section-hero">
+                    <div class="hero-icon stretch-icon-anim">🧘</div>
+                    <h2 class="section-title">Stretch</h2>
+                    <p class="section-desc">Release tension from your neck, shoulders, and wrists. Sit tall as you
+                        begin.</p>
+                </div>
+
+                <!-- Routine selector -->
+                <div class="routine-selector">
+                    <button class="routine-btn routine-btn--active" data-routine="neck">Neck Roll</button>
+                    <button class="routine-btn" data-routine="shoulder">Shoulders</button>
+                    <button class="routine-btn" data-routine="wrist">Wrists</button>
+                    <button class="routine-btn" data-routine="posture">Posture</button>
+                </div>
+
+                <!-- Circular progress + instruction block -->
+                <div class="stretch-stage" id="stretch-stage">
+                    <div class="circle-progress-wrap">
+                        <svg class="circle-svg" viewBox="0 0 160 160">
+                            <circle class="cp-track" cx="80" cy="80" r="70" />
+                            <circle class="cp-fill" id="stretch-cp" cx="80" cy="80" r="70" />
+                        </svg>
+                        <div class="cp-inner">
+                            <div class="stretch-icon-big" id="stretch-icon-big">🌀</div>
+                            <span class="cp-value" id="stretch-cp-val">30</span>
+                            <span class="cp-unit">sec</span>
+                        </div>
+                    </div>
+                    <div class="stretch-cue" id="stretch-cue">
+                        <h3 id="stretch-cue-title">Neck Roll</h3>
+                        <p id="stretch-cue-desc">Slowly roll your head in a full circle, 3 times each direction.</p>
+                    </div>
+                </div>
+
+                <div class="posture-banner" id="posture-banner">
+                    🪑 Sit with your back straight, feet flat on the floor
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-primary" id="stretch-start">▶ Start Routine</button>
+                    <button class="btn-primary btn-secondary" id="stretch-skip" style="display:none">Skip →</button>
+                    <button class="btn-sound" id="stretch-sound">🔔</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════
+       🧠  MENTAL SECTION
+  ═══════════════════════════════════════════ -->
+        <section class="screen screen--section screen--mental" id="screen-mental" style="display:none">
+            <div class="section-inner">
+
+                <button class="btn-back" data-target="home">
+                    <svg viewBox="0 0 16 16" fill="none">
+                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                    Back
+                </button>
+
+                <div class="section-hero">
+                    <div class="hero-icon mental-icon-anim">🧠</div>
+                    <h2 class="section-title">Mental Reset</h2>
+                    <p class="section-desc">One minute to clear mental clutter. Breathe, release, realign.</p>
+                </div>
+
+                <div class="mental-tabs" id="mental-tabs">
+                    <button class="tool-tab tool-tab--active" data-mental-tab="breathe">Breathe</button>
+                    <button class="tool-tab" data-mental-tab="journal">Journal</button>
+                    <button class="tool-tab" data-mental-tab="countdown">Focus Reset</button>
+                </div>
+
+                <!-- Breathing panel -->
+                <div class="tool-panel" id="mental-panel-breathe" style="display:flex">
+                    <div class="breath-ring-wrap">
+                        <div class="breath-ring" id="mental-breath-ring">
+                            <div class="breath-glow-ring"></div>
+                            <canvas id="mental-breath-canvas" width="200" height="200"></canvas>
+                            <div class="breath-label-inner" id="mental-breath-label">Inhale</div>
+                        </div>
+                    </div>
+                    <div class="breath-phase-info">
+                        <span class="phase-badge" id="mental-phase-badge">4 · 4 · 8</span>
+                        <span class="phase-name">Box · Ratio</span>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="mental-breathe-start">▶ Begin</button>
+                        <button class="btn-sound" id="mental-sound">🔔</button>
+                    </div>
+                </div>
+
+                <!-- Journal panel -->
+                <div class="tool-panel" id="mental-panel-journal" style="display:none">
+                    <div class="journal-prompt-card">
+                        <p class="journal-q" id="journal-prompt">Loading prompt...</p>
+                        <button class="btn-ghost-small" id="journal-refresh">↻ New prompt</button>
+                    </div>
+                    <textarea class="journal-input" id="journal-text"
+                        placeholder="Type freely — this isn't saved anywhere..." rows="5"></textarea>
+                    <div class="journal-count"><span id="journal-word-count">0</span> words</div>
+                </div>
+
+                <!-- Focus countdown panel -->
+                <div class="tool-panel" id="mental-panel-countdown" style="display:none">
+                    <div class="countdown-display">
+                        <div class="ring-timer">
+                            <svg class="ring-svg" viewBox="0 0 120 120">
+                                <circle class="ring-track" cx="60" cy="60" r="52" />
+                                <circle class="ring-fill" id="mental-cd-fill" cx="60" cy="60" r="52" />
+                            </svg>
+                            <div class="ring-inner">
+                                <span class="ring-value" id="mental-cd-val">60</span>
+                                <span class="ring-unit">sec</span>
+                            </div>
+                        </div>
+                        <p class="countdown-cue" id="mental-cd-cue">One minute of pure presence</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="mental-cd-start">▶ Start</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════
+       ⚡  ENERGY SECTION
+  ═══════════════════════════════════════════ -->
+        <section class="screen screen--section screen--energy" id="screen-energy" style="display:none">
+            <div class="section-inner">
+
+                <button class="btn-back" data-target="home">
+                    <svg viewBox="0 0 16 16" fill="none">
+                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                    Back
+                </button>
+
+                <div class="section-hero">
+                    <div class="hero-icon energy-icon-anim">⚡</div>
+                    <h2 class="section-title">Energy Reset</h2>
+                    <p class="section-desc">Quick burst of movement and breath to wake your body up fast.</p>
+                </div>
+
+                <div class="energy-tabs" id="energy-tabs">
+                    <button class="tool-tab tool-tab--active" data-energy-tab="move">Movement</button>
+                    <button class="tool-tab" data-energy-tab="breath">Fast Breath</button>
+                    <button class="tool-tab" data-energy-tab="hydrate">Hydrate</button>
+                </div>
+
+                <!-- Movement panel -->
+                <div class="tool-panel" id="energy-panel-move" style="display:flex">
+                    <div class="move-challenge-card">
+                        <div class="move-icon-big" id="energy-move-icon">🤸</div>
+                        <h3 id="energy-move-title">Jumping Jacks</h3>
+                        <p id="energy-move-desc">20 reps · Gets blood flowing fast</p>
+                    </div>
+                    <div class="ring-timer ring-timer--sm">
+                        <svg class="ring-svg" viewBox="0 0 120 120">
+                            <circle class="ring-track" cx="60" cy="60" r="52" />
+                            <circle class="ring-fill" id="energy-move-fill" cx="60" cy="60" r="52" />
+                        </svg>
+                        <div class="ring-inner">
+                            <span class="ring-value" id="energy-move-val">45</span>
+                            <span class="ring-unit">sec</span>
+                        </div>
+                    </div>
+                    <div class="motivation-card" id="energy-motivation">
+                        <p id="energy-motivation-text">You're one move away from feeling better.</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="energy-move-start">▶ Start</button>
+                        <button class="btn-primary btn-tertiary" id="energy-move-next" style="display:none">Next
+                            challenge</button>
+                    </div>
+                </div>
+
+                <!-- Fast Breath panel -->
+                <div class="tool-panel" id="energy-panel-breath" style="display:none">
+                    <div class="fast-breath-visual">
+                        <div class="fast-breath-bar-wrap">
+                            <div class="fast-breath-bar" id="fast-breath-bar"></div>
+                        </div>
+                        <p class="fast-breath-label" id="fast-breath-label">Box breathing — energising ratio</p>
+                    </div>
+                    <div class="breath-phase-info">
+                        <span class="phase-badge">5 · 0 · 5</span>
+                        <span class="phase-name">Energising breath</span>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn-primary" id="energy-breath-start">▶ Breathe</button>
+                    </div>
+                </div>
+
+                <!-- Hydrate panel -->
+                <div class="tool-panel" id="energy-panel-hydrate" style="display:none">
+                    <div class="hydrate-card">
+                        <div class="water-icon">💧</div>
+                        <h3 class="hydrate-title">Hydration Check</h3>
+                        <p class="hydrate-text">Even mild dehydration causes fatigue and brain fog. Cold water
+                            reactivates your alertness within minutes.</p>
+                        <div class="hydrate-tips">
+                            <div class="tip">🧊 Cold water on your wrists &amp; neck</div>
+                            <div class="tip">💦 2 glasses of water now</div>
+                            <div class="tip">🚶 Stand up for 60 seconds</div>
+                        </div>
+                        <button class="btn-primary" id="hydrate-done">✓ Done — I hydrated</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Dim overlay (Eye Reset feature) -->
+        <div class="screen-dim-overlay" id="dim-overlay"></div>
+        <!-- Blue-light filter overlay -->
+        <div class="bluelight-overlay" id="bluelight-overlay"></div>
+
+    </div><!-- /.app -->
+
+    <!-- Completion toast -->
+    <div class="completion-toast" id="completion-toast">
+        <span class="toast-emoji">✅</span>
+        <span class="toast-msg" id="toast-msg">Reset complete. Carry this calm with you.</span>
+    </div>
+
+    <script src="wellness.js"></script>
+</body>
+
+</html>

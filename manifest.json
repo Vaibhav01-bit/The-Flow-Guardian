@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "The Flow Guardian",
-  "version": "1.1",
-  "description": "Detects mental fatigue and suggests gentle micro-breaks.",
+  "version": "2.0",
+  "description": "Your smart focus companion — adaptive fatigue scoring, circadian awareness, mood check, focus sessions, and gentle resets.",
   "permissions": [
     "tabs",
     "storage",
@@ -43,7 +43,13 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "reset.html"
+        "reset.html",
+        "wellness.html",
+        "wellness.css",
+        "wellness.js",
+        "modules/*.js",
+        "style.css",
+        "icons/*"
       ],
       "matches": [
         "<all_urls>"
@@ -51,6 +57,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self';"
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self';"
   }
 }

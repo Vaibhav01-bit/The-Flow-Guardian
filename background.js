@@ -1,249 +1,584 @@
-// background.js
+// background.js — The Flow Guardian v2.0
+// Modular service worker orchestrating fatigue detection, alarms, focus sessions
+// All data is local-only via chrome.storage.local
 
-// --- State Management ---
-// Local-only state (kept in-memory for fast access, persisted to chrome.storage.local)
-let fatigueScore = 0;
-let lastActiveTabId = null;
-let focusStartTime = Date.now();
-// Keep timestamps of recent tab switches (ms). We'll use sliding window (last 60s)
-let tabSwitchTimes = [];
-let scrollData = { distance: 0, lastScrollTime: Date.now() };
+// ── In-memory state (restored on startup) ─────────────────────────────────
+let _fatigueScore = 0;
+let _sessionStartTime = Date.now();
+let _lastBreakTime = Date.now();
+let _tabSwitchTimes = [];
+let _scrollBurstTimes = [];
+let _activeFocusSession = null; // { startTime, durationMins, soundChoice, endAlarmName }
 
-// --- Constants ---
-const TICK_INTERVAL = 1; // minutes
 const FATIGUE_THRESHOLD = 100;
-const FOCUS_TIME_WEIGHT = 0.5;
-const TAB_SWITCH_WEIGHT = 1.5;
-const SCROLL_WEIGHT = 1.0;
-const COOL_DOWN_FACTOR = 0.9;
+const TICK_INTERVAL_MIN = 1;
+const COOL_DOWN = 0.88;
 
-// --- Initialization ---
+// Weights
+const W = {
+  tabSwitch: 3.5,
+  scrollBurst: 1.2,
+  sessionAge: 0.4,
+  noBreak: 6.0,
+};
+
+// ── Startup & Install ──────────────────────────────────────────────────────
+
 chrome.runtime.onStartup.addListener(() => {
-  console.log("The Flow Guardian: Startup");
-  initializeState().then(() => {
-    // ensure alarm exists on startup
-    chrome.alarms.create("fatigue-tick", { periodInMinutes: TICK_INTERVAL });
-  });
+  restoreState().then(setupAlarms);
+  updateStreakOnStartup();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("The Flow Guardian: Installed");
-  initializeState().then(() => {
-    // ensure alarm exists on install
-    chrome.alarms.create("fatigue-tick", { periodInMinutes: TICK_INTERVAL });
-  });
+  restoreState().then(setupAlarms);
+  initDefaultSettings();
 });
 
-function initializeState() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(
-      [
-        "fatigueScore",
-        "lastActiveTabId",
-        "focusStartTime",
-        "tabSwitchTimes",
-        "scrollData",
-      ],
-      (result) => {
-        fatigueScore = result.fatigueScore || 0;
-        lastActiveTabId = result.lastActiveTabId || null;
-        focusStartTime = result.focusStartTime || Date.now();
-        tabSwitchTimes = result.tabSwitchTimes || [];
-        scrollData = result.scrollData || {
-          distance: 0,
-          lastScrollTime: Date.now(),
-        };
-        console.log("State initialized from storage.", { fatigueScore, focusStartTime });
-        resolve();
-      }
-    );
-  });
+function setupAlarms() {
+  chrome.alarms.create('fatigue-tick', { periodInMinutes: TICK_INTERVAL_MIN });
+  chrome.alarms.create('daily-reset', { when: nextMidnight(), periodInMinutes: 1440 });
 }
 
-// --- Event Listeners ---
-// Event listeners
-chrome.tabs.onActivated.addListener(handleTabActivation);
-chrome.alarms.onAlarm.addListener(handleAlarm);
-chrome.notifications.onButtonClicked.addListener(handleNotificationButton);
+function nextMidnight() {
+  const d = new Date();
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+}
 
-// Consolidate messages into one listener for clarity
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  try {
-    if (!request || !request.type) return;
-    if (request.type === "scrolling") {
-      // update scrolling info
-      scrollData = request.data || scrollData;
-      console.log("Scroll data received:", scrollData);
-      sendResponse({ ok: true });
-      return; // sync response
-    }
-
-    if (request.type === "getFatigueState") {
-        // ensure numeric values
-        sendResponse({ score: Number(fatigueScore) || 0, threshold: Number(FATIGUE_THRESHOLD) || 100 });
-      return; // sync response
-    }
-
-    if (request.type === "resetFatigue") {
-      fatigueScore = 0;
-      chrome.storage.local.set({ fatigueScore: 0 });
-      sendResponse({ ok: true });
-      return;
-    }
-  } catch (err) {
-    console.error('Error in onMessage listener:', err && err.stack ? err.stack : err);
-  }
-});
-
-// --- Core Logic ---
-function handleTabActivation(activeInfo) {
-  try {
-    const now = Date.now();
-    // Debug: log shapes to help find runtime errors
-    console.log('updateFatigueScore() start', {
-      fatigueScoreType: typeof fatigueScore,
-      fatigueScoreValue: fatigueScore,
-      focusStartTimeType: typeof focusStartTime,
-      focusStartTimeValue: focusStartTime,
-      tabSwitchTimesType: Array.isArray(tabSwitchTimes) ? 'array' : typeof tabSwitchTimes,
-      tabSwitchTimesLen: Array.isArray(tabSwitchTimes) ? tabSwitchTimes.length : 0,
-      scrollDataType: typeof scrollData,
-      scrollDataSample: (scrollData && typeof scrollData === 'object') ? { distance: scrollData.distance, lastScrollTime: scrollData.lastScrollTime } : scrollData
+async function initDefaultSettings() {
+  const result = await chromeGet('settings');
+  if (!result.settings) {
+    await chromeSet({
+      settings: {
+        fatigueSensitivity: 0.6,
+        theme: 'forest-calm',
+        notificationsEnabled: true,
+        quoteStyle: 'calm',
+        ambientSound: false,
+        features: {
+          focusMode: true,
+          ambientSounds: true,
+          distractionBlocking: false,
+          moodCheck: true,
+          circadianPrompts: true,
+        },
+      },
     });
-  // Push the timestamp and prune older than 60s
-    if (!Array.isArray(tabSwitchTimes)) tabSwitchTimes = [];
-    tabSwitchTimes.push(now);
-  const WINDOW_MS = 60 * 1000;
-  tabSwitchTimes = tabSwitchTimes.filter((t) => now - t <= WINDOW_MS);
-
-  // tabSwitchFrequency is switches in last minute
-  const tabSwitchFrequency = tabSwitchTimes.length;
-
-  // Update focus tracking
-  if (lastActiveTabId !== null) {
-    const focusDuration = now - focusStartTime;
-    // Optionally persist focus durations per-tab in storage in future
-  }
-
-    if (activeInfo && typeof activeInfo.tabId === 'number') {
-      lastActiveTabId = activeInfo.tabId;
-    } else {
-      console.warn('handleTabActivation: activeInfo.tabId missing', activeInfo);
-    }
-    focusStartTime = now;
-    console.log(`Tab switched. Frequency: ${tabSwitchFrequency} switches/min (last 60s).`);
-  } catch (err) {
-    console.error('Error in handleTabActivation:', err && err.stack ? err.stack : err);
   }
 }
 
-function handleAlarm(alarm) {
-  try {
-    if (!alarm) return;
-    if (alarm.name === "fatigue-tick") {
-      console.log("Fatigue tick...");
-      updateFatigueScore();
-    }
-  } catch (err) {
-    console.error('Error in handleAlarm:', err && err.stack ? err.stack : err);
-  }
+async function restoreState() {
+  const saved = await chromeGet([
+    'bgFatigueScore',
+    'bgSessionStartTime',
+    'bgLastBreakTime',
+    'bgTabSwitchTimes',
+    'bgScrollBurstTimes',
+    'activeSession',
+  ]);
+  _fatigueScore = saved.bgFatigueScore || 0;
+  _sessionStartTime = saved.bgSessionStartTime || Date.now();
+  _lastBreakTime = saved.bgLastBreakTime || Date.now();
+  _tabSwitchTimes = saved.bgTabSwitchTimes || [];
+  _scrollBurstTimes = saved.bgScrollBurstTimes || [];
+  _activeFocusSession = saved.activeSession || null;
 }
 
-function updateFatigueScore() {
-  try {
-    const now = Date.now();
-
-    // 1. Focus contribution (minutes since last focus change). Longer continuous focus increases the contribution.
-    const focusDurationMinutes = Math.max(0, (now - focusStartTime) / (1000 * 60));
-    const focusContribution = Math.min(focusDurationMinutes, 60) * FOCUS_TIME_WEIGHT; // cap to avoid runaway
-
-    // 2. Tab switching contribution (switches in last minute)
-    const WINDOW_MS = 60 * 1000;
-    tabSwitchTimes = tabSwitchTimes.filter((t) => now - t <= WINDOW_MS);
-    const switchContribution = tabSwitchTimes.length * TAB_SWITCH_WEIGHT;
-
-    // 3. Scrolling contribution
-    const timeSinceScroll = now - (scrollData.lastScrollTime || 0);
-    let scrollContribution = 0;
-    // If recent scrolling activity and meaningful distance, count it
-    if (timeSinceScroll < 5000 && (scrollData.distance || 0) > 20) {
-      // distance here is in pixels (or event-count proxy). Normalize modestly
-      scrollContribution = (scrollData.distance / 100) * SCROLL_WEIGHT;
-    }
-
-    // 4. Combine and apply a cool-down so score decays a bit each tick
-    const rawIncrease = (Number(focusContribution) || 0) + (Number(switchContribution) || 0) + (Number(scrollContribution) || 0);
-    fatigueScore = Math.max(0, (Number(fatigueScore) || 0) * COOL_DOWN_FACTOR + rawIncrease);
-
-    // Defensive numeric checks before formatting
-    if (!isFinite(fatigueScore)) fatigueScore = 0;
-    const safeFatigue = Number(fatigueScore) || 0;
-    const safeFocus = Number(focusContribution) || 0;
-    const safeSwitch = Number(switchContribution) || 0;
-    const safeScroll = Number(scrollContribution) || 0;
-
-    console.log('Fatigue Score Updated:', safeFatigue.toFixed(2));
-    console.log(`  - Focus: ${safeFocus.toFixed(2)}, Switch: ${safeSwitch.toFixed(2)}, Scroll: ${safeScroll.toFixed(2)}`);
-
-    // 5. Threshold check and gentle notification
-    if (fatigueScore > FATIGUE_THRESHOLD) {
-      triggerFatigueNotification();
-      // Back off a bit to avoid immediate re-triggering
-      fatigueScore = FATIGUE_THRESHOLD * 0.8;
-    }
-
-    // 6. Persist state locally (ensure numeric)
-      try {
-        chrome.storage.local.set({ fatigueScore: Number(fatigueScore) || 0, lastActiveTabId, focusStartTime }, () => {
-          if (chrome.runtime.lastError) console.error('storage.set error:', chrome.runtime.lastError && chrome.runtime.lastError.message);
-        });
-      } catch (setErr) {
-        console.error('Error calling storage.local.set:', setErr && setErr.stack ? setErr.stack : setErr);
-      }
-  } catch (err) {
-    console.error('Error in updateFatigueScore:', err && err.stack ? err.stack : err);
-  }
+function persistState() {
+  chromeSet({
+    bgFatigueScore: _fatigueScore,
+    bgSessionStartTime: _sessionStartTime,
+    bgLastBreakTime: _lastBreakTime,
+    bgTabSwitchTimes: _tabSwitchTimes,
+    bgScrollBurstTimes: _scrollBurstTimes,
+  });
 }
 
+// ── Alarm Handler ──────────────────────────────────────────────────────────
 
-// --- Notifications & Actions ---
-function triggerFatigueNotification() {
-  const options = {
-    type: "basic",
-    iconUrl: "icons/icon128.png",
-    title: "Gentle Pause?",
-    message: "A short 60s reset can restore your focus. Would you like to try?",
-    buttons: [{ title: "Start Reset" }, { title: "Maybe Later" }],
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (!alarm) return;
+
+  if (alarm.name === 'fatigue-tick') {
+    handleFatigueTick();
+  }
+
+  if (alarm.name === 'daily-reset') {
+    handleDailyReset();
+  }
+
+  if (alarm.name.startsWith('focus-end-')) {
+    handleFocusSessionEnd();
+  }
+});
+
+// ── Tab Activation ─────────────────────────────────────────────────────────
+
+chrome.tabs.onActivated.addListener(() => {
+  const now = Date.now();
+  _tabSwitchTimes.push(now);
+  // Prune to last 5 min
+  _tabSwitchTimes = _tabSwitchTimes.filter((t) => now - t <= 5 * 60000);
+  // Log to analytics day record
+  logTabSwitchToDay();
+});
+
+async function logTabSwitchToDay() {
+  const hour = new Date().getHours();
+  const today = dayKey();
+  const result = await chromeGet(today);
+  const rec = result[today] || emptyDayRecord();
+  rec.tabSwitches = (rec.tabSwitches || 0) + 1;
+  rec.hourlyTabSwitches[hour] = (rec.hourlyTabSwitches[hour] || 0) + 1;
+  await chromeSet({ [today]: rec });
+}
+
+// ── Message Handler ────────────────────────────────────────────────────────
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (!request || !request.type) return;
+
+  switch (request.type) {
+    // Fatigue signals from content script
+    case 'scrolling':
+      handleScrollData(request.data);
+      sendResponse({ ok: true });
+      return true;
+
+    case 'scrollBurst':
+      _scrollBurstTimes.push(Date.now());
+      _scrollBurstTimes = _scrollBurstTimes.filter((t) => Date.now() - t <= 5 * 60000);
+      logScrollBurstToDay();
+      sendResponse({ ok: true });
+      return true;
+
+    // State queries
+    case 'getFatigueState':
+      sendResponse({ score: _fatigueScore, threshold: FATIGUE_THRESHOLD });
+      return true;
+
+    case 'getDashboard':
+      getDashboardData().then(sendResponse);
+      return true; // async
+
+    case 'getAnalytics':
+      getAnalyticsData().then(sendResponse);
+      return true;
+
+    // Resets
+    case 'resetFatigue':
+      _fatigueScore = 0;
+      _lastBreakTime = Date.now();
+      _sessionStartTime = Date.now();
+      persistState();
+      sendResponse({ ok: true });
+      return true;
+
+    case 'logReset':
+      handleLogReset(request.resetType, request.mood).then(() => sendResponse({ ok: true }));
+      return true;
+
+    // Focus sessions
+    case 'startFocusSession':
+      startFocusSession(request.durationMins, request.soundChoice).then(sendResponse);
+      return true;
+
+    case 'endFocusSession':
+      endFocusSession().then(sendResponse);
+      return true;
+
+    case 'getFocusSession':
+      sendResponse({ session: _activeFocusSession });
+      return true;
+  }
+});
+
+// ── Content Script Messages ───────────────────────────────────────────────
+
+function handleScrollData(data) {
+  if (!data) return;
+  // Legacy compat — still used for fatigue calc
+}
+
+async function logScrollBurstToDay() {
+  const today = dayKey();
+  const result = await chromeGet(today);
+  const rec = result[today] || emptyDayRecord();
+  rec.scrollBursts = (rec.scrollBursts || 0) + 1;
+  await chromeSet({ [today]: rec });
+}
+
+// ── Fatigue Tick ───────────────────────────────────────────────────────────
+
+async function handleFatigueTick() {
+  const now = Date.now();
+  const settings = await chromeGet('settings');
+  const sensitivity = (settings.settings && settings.settings.fatigueSensitivity) || 0.6;
+  const notificationsEnabled = !(settings.settings && settings.settings.notificationsEnabled === false);
+
+  // Prune windows
+  _tabSwitchTimes = _tabSwitchTimes.filter((t) => now - t <= 5 * 60000);
+  _scrollBurstTimes = _scrollBurstTimes.filter((t) => now - t <= 5 * 60000);
+
+  const switchScore = _tabSwitchTimes.length * W.tabSwitch;
+  const scrollScore = _scrollBurstTimes.length * W.scrollBurst;
+  const sessionMins = Math.min(60, (now - _sessionStartTime) / 60000);
+  const ageScore = Math.floor(sessionMins / 10) * W.sessionAge;
+  const breakPenalty = (now - _lastBreakTime > 90 * 60000) ? W.noBreak : 0;
+
+  const rawIncrease = switchScore + scrollScore + ageScore + breakPenalty;
+  _fatigueScore = Math.max(0, _fatigueScore * COOL_DOWN + rawIncrease);
+  _fatigueScore = Math.min(100, _fatigueScore * sensitivity);
+  if (!isFinite(_fatigueScore)) _fatigueScore = 0;
+
+  // Log score to hourly analytics
+  await logFatigueScoreToDay(Math.round(_fatigueScore));
+
+  // Trigger notifications
+  if (notificationsEnabled) {
+    if (_fatigueScore >= 85) {
+      triggerResetNotification();
+      _fatigueScore = _fatigueScore * 0.75; // back off
+    } else if (_fatigueScore >= 65) {
+      triggerSoftNudge();
+    }
+  }
+
+  persistState();
+}
+
+async function logFatigueScoreToDay(score) {
+  const hour = new Date().getHours();
+  const today = dayKey();
+  const result = await chromeGet(today);
+  const rec = result[today] || emptyDayRecord();
+  if (!rec.hourlyFatigueScore) rec.hourlyFatigueScore = new Array(24).fill(0);
+  rec.hourlyFatigueScore[hour] = Math.max(rec.hourlyFatigueScore[hour] || 0, score);
+  if (score >= 85 && (!rec.fatigueSpikes || rec.fatigueSpikes.length === 0 ||
+    Date.now() - rec.fatigueSpikes[rec.fatigueSpikes.length - 1].time > 10 * 60000)) {
+    rec.fatigueSpikes = rec.fatigueSpikes || [];
+    rec.fatigueSpikes.push({ time: Date.now(), score });
+  }
+  await chromeSet({ [today]: rec });
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+function triggerResetNotification() {
+  const h = new Date().getHours();
+  let message;
+  if (h >= 6 && h < 11) message = 'Morning fatigue detected. A 60s reset will help you start strong.';
+  else if (h >= 17) message = 'Evening tiredness — a calm reset can help you wind down well.';
+  else message = 'A short reset can restore your focus. Would you like to try?';
+
+  chrome.notifications.create('fatigue-alert', {
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: 'Time for a gentle pause?',
+    message,
+    buttons: [{ title: 'Start Reset' }, { title: 'Maybe Later' }],
     priority: 2,
     requireInteraction: false,
-  };
-
-  chrome.notifications.create("fatigue-alert", options, (notificationId) => {
-    try {
-      if (chrome.runtime.lastError) {
-        console.error("Notification failed:", chrome.runtime.lastError && chrome.runtime.lastError.message);
-        // Fallback: Open the reset page directly if notifications or permissions are restricted
-        openResetPage();
-      } else {
-        console.log("Notification shown:", notificationId);
-      }
-    } catch (cbErr) {
-      console.error('Error in notifications.create callback:', cbErr && cbErr.stack ? cbErr.stack : cbErr);
-    }
+  }, (id) => {
+    if (chrome.runtime.lastError) openResetPage(); // fallback
   });
 }
 
-function handleNotificationButton(notificationId, buttonIndex) {
-  if (notificationId === "fatigue-alert") {
-    if (buttonIndex === 0) openResetPage();
-    // buttonIndex === 1 -> dismiss
+function triggerSoftNudge() {
+  chrome.action.setBadgeText({ text: '!' });
+  chrome.action.setBadgeBackgroundColor({ color: '#f6ad55' });
+  setTimeout(() => {
+    chrome.action.setBadgeText({ text: '' });
+  }, 60000);
+}
+
+chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+  if (notifId === 'fatigue-alert' && btnIdx === 0) openResetPage();
+});
+
+function openResetPage() {
+  chrome.tabs.create({ url: chrome.runtime.getURL('reset.html') });
+}
+
+// ── Focus Sessions ─────────────────────────────────────────────────────────
+
+async function startFocusSession(durationMins, soundChoice) {
+  const alarmName = `focus-end-${Date.now()}`;
+  _activeFocusSession = {
+    startTime: Date.now(),
+    durationMins,
+    soundChoice: soundChoice || null,
+    endAlarmName: alarmName,
+  };
+  await chromeSet({ activeSession: _activeFocusSession });
+  chrome.alarms.create(alarmName, { delayInMinutes: durationMins });
+  return { ok: true, session: _activeFocusSession };
+}
+
+async function endFocusSession() {
+  if (!_activeFocusSession) return { ok: false };
+  const elapsed = Math.round((Date.now() - _activeFocusSession.startTime) / 60000);
+  chrome.alarms.clear(_activeFocusSession.endAlarmName);
+
+  // Log minutes to day record
+  const today = dayKey();
+  const result = await chromeGet(today);
+  const rec = result[today] || emptyDayRecord();
+  rec.focusMinutes = (rec.focusMinutes || 0) + Math.max(1, elapsed);
+  await chromeSet({ [today]: rec });
+
+  // Log to meta total
+  const metaResult = await chromeGet('meta');
+  const meta = metaResult.meta || emptyMeta();
+  meta.totalFocusHours = +((meta.totalFocusHours || 0) + elapsed / 60).toFixed(2);
+  await chromeSet({ meta });
+
+  _activeFocusSession = null;
+  await chromeSet({ activeSession: null });
+  _lastBreakTime = Date.now(); // ending a focus session counts as a break
+  return { ok: true, minutesLogged: Math.max(1, elapsed) };
+}
+
+async function handleFocusSessionEnd() {
+  const session = _activeFocusSession;
+  if (session) {
+    await endFocusSession();
+    chrome.notifications.create('focus-complete', {
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: '✅ Focus session complete!',
+      message: `Great work — ${session.durationMins} minutes done. Time for a short break.`,
+      priority: 1,
+    });
+    openResetPage();
   }
 }
 
-function openResetPage() {
-  chrome.tabs.create({ url: chrome.runtime.getURL("reset.html") });
-  console.log("Reset page opened.");
+// ── Log Reset ─────────────────────────────────────────────────────────────
+
+async function handleLogReset(resetType, mood) {
+  const today = dayKey();
+  const result = await chromeGet(today);
+  const rec = result[today] || emptyDayRecord();
+
+  if (mood) {
+    rec.moodLog = rec.moodLog || [];
+    rec.moodLog.push({ time: Date.now(), mood });
+  }
+
+  if (resetType) {
+    rec.resetLog = rec.resetLog || [];
+    rec.resetLog.push({ time: Date.now(), type: resetType });
+    rec.breakCount = (rec.breakCount || 0) + 1;
+  }
+  await chromeSet({ [today]: rec });
+
+  // Decay fatigue on reset
+  _fatigueScore = _fatigueScore * 0.4;
+  _lastBreakTime = Date.now();
+  _sessionStartTime = Date.now();
+  persistState();
+
+  // Update meta
+  const metaResult = await chromeGet('meta');
+  const meta = metaResult.meta || emptyMeta();
+  meta.totalResets = (meta.totalResets || 0) + 1;
+  await chromeSet({ meta });
 }
 
-// --- Getters for Popup ---
-// Note: messages are handled by the consolidated listener above.
+// ── Daily Reset (midnight) ─────────────────────────────────────────────────
+
+async function handleDailyReset() {
+  // Compute yesterday's focus score and store it
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yKey = dayKey(yesterday);
+  const result = await chromeGet(yKey);
+  const rec = result[yKey];
+  if (rec) {
+    rec.focusScore = computeDailyFocusScore(rec);
+    await chromeSet({ [yKey]: rec });
+  }
+  // Update streak
+  await updateStreakOnStartup();
+}
+
+async function updateStreakOnStartup() {
+  const today = new Date().toISOString().slice(0, 10);
+  const metaResult = await chromeGet('meta');
+  const meta = metaResult.meta || emptyMeta();
+  if (meta.lastActiveDate === today) return;
+
+  if (meta.lastActiveDate) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().slice(0, 10);
+    meta.streakDays = meta.lastActiveDate === yStr ? (meta.streakDays || 0) + 1 : 1;
+  } else {
+    meta.streakDays = 1;
+  }
+  meta.lastActiveDate = today;
+  await chromeSet({ meta });
+}
+
+// ── Dashboard Data ─────────────────────────────────────────────────────────
+
+async function getDashboardData() {
+  const today = dayKey();
+  const [dayResult, metaResult] = await Promise.all([
+    chromeGet(today),
+    chromeGet('meta'),
+  ]);
+  const rec = dayResult[today] || emptyDayRecord();
+  const meta = metaResult.meta || emptyMeta();
+
+  return {
+    fatigueScore: Math.round(_fatigueScore),
+    focusScore: computeDailyFocusScore(rec),
+    focusMinutes: rec.focusMinutes || 0,
+    breakCount: rec.breakCount || 0,
+    streakDays: meta.streakDays || 0,
+    totalFocusHours: meta.totalFocusHours || 0,
+    lastMood: rec.moodLog && rec.moodLog.length ? rec.moodLog[rec.moodLog.length - 1].mood : null,
+    circadianContext: getCircadianContext(),
+    circadianPrompt: getCircadianPrompt(),
+    activeSession: _activeFocusSession,
+  };
+}
+
+async function getAnalyticsData() {
+  // Get last 7 days
+  const keys = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    keys.push(dayKey(d));
+  }
+  const result = await chromeGet(keys);
+  const days = keys.map((k) => result[k] || emptyDayRecord()).reverse();
+  const today = dayKey();
+  const todayResult = await chromeGet(today);
+  const todayRec = todayResult[today] || emptyDayRecord();
+
+  return {
+    weekly: {
+      focusScores: days.map(computeDailyFocusScore),
+      focusMinutes: days.map((d) => d.focusMinutes || 0),
+      tabSwitches: days.map((d) => d.tabSwitches || 0),
+      breaks: days.map((d) => d.breakCount || 0),
+    },
+    today: {
+      hourlyFatigue: todayRec.hourlyFatigueScore || new Array(24).fill(0),
+      hourlyTabSwitches: todayRec.hourlyTabSwitches || new Array(24).fill(0),
+      tabSwitches: todayRec.tabSwitches || 0,
+      scrollBursts: todayRec.scrollBursts || 0,
+    },
+    insights: generateInsights(todayRec),
+  };
+}
+
+// ── Insight Generator ──────────────────────────────────────────────────────
+
+function generateInsights(rec) {
+  const insights = [];
+  const focusMins = rec.focusMinutes || 0;
+  const breaks = rec.breakCount || 0;
+  const switches = rec.tabSwitches || 0;
+  const spikes = (rec.fatigueSpikes || []).length;
+
+  const hourlyFatigue = rec.hourlyFatigueScore || [];
+  const peakHour = hourlyFatigue.indexOf(Math.max(...hourlyFatigue, 0));
+  if (Math.max(...hourlyFatigue, 0) > 20) {
+    insights.push(`🔴 Peak fatigue around ${fmtHour(peakHour)} today.`);
+  }
+
+  if (focusMins >= 120) {
+    insights.push(`✅ Excellent — ${focusMins} min focused today.`);
+  } else if (focusMins > 0) {
+    insights.push(`⏱ ${focusMins} min focused. Aim for 90+ min.`);
+  } else {
+    insights.push(`💡 No sessions yet. Try a 25-min focus block.`);
+  }
+
+  if (breaks === 0) {
+    insights.push(`☕ No breaks taken — a reset can sharpen your mind.`);
+  } else if (breaks >= 4) {
+    insights.push(`🌿 Good break rhythm — ${breaks} resets taken today.`);
+  }
+
+  if (switches > 60) {
+    insights.push(`🔀 ${switches} tab switches today — consider blocking distractions.`);
+  }
+
+  return insights.slice(0, 3);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function dayKey(date = new Date()) {
+  return `day_${date.toISOString().slice(0, 10)}`;
+}
+
+function emptyDayRecord() {
+  return {
+    focusScore: 0,
+    focusMinutes: 0,
+    breakCount: 0,
+    moodLog: [],
+    resetLog: [],
+    tabSwitches: 0,
+    scrollBursts: 0,
+    fatigueSpikes: [],
+    hourlyTabSwitches: new Array(24).fill(0),
+    hourlyFatigueScore: new Array(24).fill(0),
+  };
+}
+
+function emptyMeta() {
+  return { streakDays: 0, lastActiveDate: null, totalFocusHours: 0, totalResets: 0 };
+}
+
+function computeDailyFocusScore(rec) {
+  const focusMins = rec.focusMinutes || 0;
+  const breaks = rec.breakCount || 0;
+  const spikes = (rec.fatigueSpikes || []).length;
+  const timeScore = Math.min(60, focusMins / 2);
+  const breakScore = Math.min(20, breaks * 5);
+  const penalty = Math.min(30, spikes * 10);
+  return Math.max(0, Math.min(100, Math.round(timeScore + breakScore - penalty)));
+}
+
+function getCircadianContext() {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 11) return 'morning';
+  if (h >= 11 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 21) return 'evening';
+  return 'night';
+}
+
+function getCircadianPrompt() {
+  const ctx = getCircadianContext();
+  const prompts = {
+    morning: ['Good morning — let\'s build a focused start.', 'Morning clarity awaits.', 'A fresh day, fresh focus.'],
+    afternoon: ['Steady pace wins. Keep flowing.', 'Midday check — stay grounded.', 'You\'re doing well. Keep going.'],
+    evening: ['Evening — wind down gently.', 'The day is slowing. Let your mind follow.', 'Evening calm is productive too.'],
+    night: ['Night — be gentle with yourself.', 'Dim the mental load. Ease into stillness.', 'Rest well — recovery is part of focus.'],
+  };
+  const list = prompts[ctx];
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function fmtHour(h) {
+  if (h === 0) return '12am';
+  if (h < 12) return `${h}am`;
+  if (h === 12) return '12pm';
+  return `${h - 12}pm`;
+}
+
+function chromeGet(keys) {
+  return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+}
+
+function chromeSet(data) {
+  return new Promise((resolve) => chrome.storage.local.set(data, resolve));
+}

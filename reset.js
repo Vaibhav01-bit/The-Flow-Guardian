@@ -1,841 +1,528 @@
-// reset.js
-// Modern breathing animation using Canvas - Performance optimized
+// reset.js — The Flow Guardian v2.0
+// 3-step flow: Mood Check → Reset Type → Breathing Session
 
 (() => {
   'use strict';
 
-  // Time-aware breathing constants (adjusted based on time of day)
-  let BREATH_IN = 4000;   // 4 seconds - Inhale
-  let HOLD = 4000;        // 4 seconds - Hold
-  let BREATH_OUT = 8000;  // 8 seconds - Exhale
-  let TOTAL_CYCLE = 16000; // 16 seconds base cycle
-  const MAX_CYCLES = 4;
-  
-  // Apply time-of-day adjustments
-  function applyTimeAwareness() {
-    const timing = getBreathingTimingForTime();
-    BREATH_IN = timing.breathIn;
-    HOLD = timing.hold;
-    BREATH_OUT = timing.breathOut;
-    TOTAL_CYCLE = BREATH_IN + HOLD + BREATH_OUT;
-  }
+  // ── State ────────────────────────────────────────────────────────────
+  let _mood = null;
+  let _resetType = 'mental';
+  let _settings = {};
+  let _profile = null; // breathing profile from BreathingEngine
 
+  // Breathing session state
   let canvas, ctx, breathingText, captionEl, breathGlow, quoteEl;
   let animationFrameId;
   let isActive = false;
   let startTime = 0;
   let currentCycleCount = 0;
-  let lastState = '';
+  let lastPhase = '';
   let speechVoices = [];
   let progressDots = [];
   let quoteInterval = null;
   let currentQuoteIndex = 0;
 
-  // Categorized quotes for different preferences
-  const quotesCalm = [
-    "Slow down. You are safe.",
-    "Breathe. This moment is enough.",
-    "Rest is part of progress.",
-    "Calm brings clarity.",
-    "One breath at a time.",
-    "You are exactly where you need to be.",
-    "Trust the pace of your own growth.",
-    "Stillness is a form of strength.",
-    "Let go of what you cannot control.",
-    "Peace begins with a single breath.",
-    "You deserve this moment of rest.",
-    "Gentle progress is still progress.",
-    "Your well-being matters.",
-    "This pause will serve you well.",
-    "You don't need to rush."
-  ];
-
-  const quotesEncouraging = [
-    "You're doing well.",
-    "One step at a time.",
-    "You've got this.",
-    "Keep going gently.",
-    "You're making progress.",
-    "Trust yourself.",
-    "You're exactly where you need to be.",
-    "Your effort matters.",
-    "You're growing every day.",
-    "Believe in your journey.",
-    "You're stronger than you think.",
-    "Small steps lead to big changes.",
-    "You're capable and calm.",
-    "Your best is enough.",
-    "You're doing great."
-  ];
-
-  const quotesMinimal = [
-    "Pause.",
-    "Breathe.",
-    "Ease.",
-    "Rest.",
-    "Calm.",
-    "Peace.",
-    "Flow.",
-    "Center.",
-    "Ground.",
-    "Release.",
-    "Soften.",
-    "Trust.",
-    "Settle.",
-    "Balance.",
-    "Steady."
-  ];
-
-  // Completion messages (soft, supportive, non-gamified)
-  const completionMessages = [
-    "Nice work. Take that calm back into your task.",
-    "Carry this calm with you.",
-    "You're ready to continue.",
-    "Take this peace forward.",
-    "You've centered yourself well.",
-    "Return to your work with this clarity.",
-    "You're grounded and ready.",
-    "That calm is yours to keep."
-  ];
-
-  let activeQuotes = quotesCalm; // Default
-  let preferences = {
-    quoteStyle: 'calm',
-    ambientSound: false
+  // ── Reset type profiles ───────────────────────────────────────────────
+  const PROFILES = {
+    eye: {
+      name: 'Eye Reset', emoji: '👁️',
+      instruction: 'Softly close your eyes and let them rest.',
+      breathIn: 4000, hold: 2000, breathOut: 6000, cycles: 4,
+      accent: '#81e6d9', glow: 'rgba(129, 230, 217, 0.2)',
+    },
+    stretch: {
+      name: 'Stretch Reset', emoji: '🧘',
+      instruction: 'Roll your shoulders back and breathe into the stretch.',
+      breathIn: 5000, hold: 3000, breathOut: 7000, cycles: 3,
+      accent: '#b794f4', glow: 'rgba(183, 148, 244, 0.2)',
+    },
+    mental: {
+      name: 'Mental Reset', emoji: '🧠',
+      instruction: 'Let each exhale carry away a thought you don\'t need.',
+      breathIn: 4000, hold: 4000, breathOut: 8000, cycles: 4,
+      accent: '#68d391', glow: 'rgba(104, 211, 145, 0.2)',
+    },
+    energy: {
+      name: 'Energy Reset', emoji: '⚡',
+      instruction: 'Breathe in vitality. Breathe out fatigue.',
+      breathIn: 3000, hold: 1000, breathOut: 5000, cycles: 5,
+      accent: '#f6ad55', glow: 'rgba(246, 173, 85, 0.2)',
+    },
   };
-  let audioContext = null;
-  let ambientSource = null;
 
+  // ── Quotes ────────────────────────────────────────────────────────────
+  const QUOTES = {
+    calm: [
+      'Slow down. You are safe.', 'Breathe. This moment is enough.',
+      'Rest is part of progress.', 'Calm brings clarity.',
+      'One breath at a time.', 'Stillness is a form of strength.',
+      'Let go of what you cannot control.', 'Peace begins with a single breath.',
+    ],
+    encouraging: [
+      'You\'re doing well.', 'One step at a time.', 'You\'ve got this.',
+      'Keep going gently.', 'Trust yourself.', 'Your effort matters.',
+      'Small steps lead to big changes.', 'Your best is enough.',
+    ],
+    minimal: ['Pause.', 'Breathe.', 'Ease.', 'Rest.', 'Calm.', 'Peace.', 'Flow.', 'Release.'],
+    off: [],
+  };
+
+  const COMPLETION_MSGS = [
+    'Carry this calm with you.', 'Nice work. Take that calm back into your task.',
+    'You\'re ready to continue.', 'That calm is yours to keep.',
+    'You\'ve centered yourself well.', 'Return with this clarity.',
+  ];
+
+  // ── Boot ──────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    // Apply time-of-day awareness
-    applyTimeAwareness();
-    
-    // Load preferences first, then initialize
-    chrome.storage.local.get(['quoteStyle', 'ambientSound'], (result) => {
-      preferences.quoteStyle = result.quoteStyle || 'calm';
-      preferences.ambientSound = result.ambientSound || false;
-      
-      // Set active quotes based on preference
-      switch(preferences.quoteStyle) {
-        case 'encouraging':
-          activeQuotes = quotesEncouraging;
-          break;
-        case 'minimal':
-          activeQuotes = quotesMinimal;
-          break;
-        case 'off':
-          activeQuotes = [];
-          break;
-        default:
-          activeQuotes = quotesCalm;
+    loadSettings().then(() => {
+      applyTheme(_settings.theme || 'forest-calm');
+
+      if (_settings.features && _settings.features.moodCheck === false) {
+        // Skip mood check — go straight to type selector
+        showStep('step-type');
+      } else {
+        showStep('step-mood');
       }
-      
-      init();
+
+      setupMoodStep();
+      setupTypeStep();
     });
   });
 
-  function loadVoices() {
-    if (window.speechSynthesis) {
-      speechVoices = window.speechSynthesis.getVoices();
-    }
+  async function loadSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get('settings', (result) => {
+        _settings = result.settings || {};
+        resolve();
+      });
+    });
   }
 
-  function init() {
-    // --- Voice Synthesis Setup ---
-    loadVoices();
-    if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+  // ── Step Management ────────────────────────────────────────────────────
+  function showStep(id) {
+    ['step-mood', 'step-type', 'step-breathe'].forEach((s) => {
+      const el = document.getElementById(s);
+      if (el) {
+        if (s === id) {
+          el.style.display = '';
+          el.classList.add('step--enter');
+          setTimeout(() => el.classList.remove('step--enter'), 400);
+        } else {
+          el.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  // ── Step 1: Mood Check ─────────────────────────────────────────────────
+  function setupMoodStep() {
+    document.querySelectorAll('.mood-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        _mood = btn.dataset.mood;
+        // Log mood to background
+        safeSend({ type: 'logReset', mood: _mood, resetType: null });
+        // Suggest reset type based on mood
+        suggestResetType(_mood);
+        showStep('step-type');
+      });
+    });
+
+    const skipMood = document.getElementById('skip-mood');
+    if (skipMood) skipMood.addEventListener('click', () => showStep('step-type'));
+  }
+
+  function suggestResetType(mood) {
+    const suggestions = {
+      happy: 'energy',
+      neutral: 'mental',
+      tired: 'eye',
+      overwhelmed: 'mental',
+    };
+    const suggested = suggestions[mood] || 'mental';
+    // Pre-highlight the suggestion
+    document.querySelectorAll('.reset-type-btn').forEach((btn) => {
+      btn.classList.toggle('reset-type-btn--suggested', btn.dataset.type === suggested);
+    });
+    const hint = document.getElementById('reset-type-hint');
+    if (hint) hint.textContent = mood === 'tired' ? '👁️ Your eyes may need rest first.' : 'Based on your check-in:';
+  }
+
+  // ── Step 2: Reset Type ────────────────────────────────────────────────
+  function setupTypeStep() {
+    document.querySelectorAll('.reset-type-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        _resetType = btn.dataset.type;
+        initBreathingSession();
+        showStep('step-breathe');
+      });
+    });
+  }
+
+  // ── Step 3: Breathing ─────────────────────────────────────────────────
+  function initBreathingSession() {
+    _profile = buildProfile();
+    applyProfileAccent(_profile);
+
+    // Activate type label
+    const label = document.getElementById('active-type-label');
+    if (label) label.textContent = `${_profile.emoji} ${_profile.name}`;
+
+    // Voice
+    if (window.speechSynthesis) {
+      speechVoices = window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        speechVoices = window.speechSynthesis.getVoices();
+      };
     }
 
-    // Directly get all required elements from the DOM.
     canvas = document.getElementById('breathing-canvas');
     breathingText = document.getElementById('breathing-text');
     captionEl = document.getElementById('captions');
     quoteEl = document.getElementById('motivational-quote');
-    breathGlow = document.querySelector('.breath-glow');
+    breathGlow = document.getElementById('breath-glow');
+    progressDots = document.querySelectorAll('.progress-dot');
+
+    if (!canvas) return;
+    ctx = canvas.getContext('2d');
+
+    if (breathingText) breathingText.textContent = _profile.instruction;
+
+    // Apply glow color
+    if (breathGlow) breathGlow.style.background = `radial-gradient(circle at center, ${_profile.glow} 0%, transparent 80%)`;
+
+    // Buttons
     const startBtn = document.getElementById('start-reset');
     const skipBtn = document.getElementById('skip-reset');
     const closeBtn = document.getElementById('close-reset');
-    const returnToWorkBtn = document.getElementById('return-to-work');
-    const anotherBreathBtn = document.getElementById('another-breath');
-    const completionActions = document.getElementById('completion-actions');
-    const supportiveText = document.querySelector('.supportive-text');
-    progressDots = document.querySelectorAll('.progress-dot');
+    const returnBtn = document.getElementById('return-to-work');
+    const anotherBtn = document.getElementById('another-breath');
 
-    // Perform robust checks to ensure all elements are loaded.
-    let initFailed = false;
-    if (!canvas) {
-      console.error("The Flow Guardian: Could not find element #breathing-canvas.");
-      initFailed = true;
-    }
-    if (!breathingText) {
-      console.error("The Flow Guardian: Could not find element #breathing-text.");
-      initFailed = true;
-    }
-    if (!startBtn) {
-      console.error("The Flow Guardian: Could not find element #start-reset.");
-      initFailed = true;
-    }
-    if (!captionEl) {
-      console.error("The Flow Guardian: Could not find element #captions.");
-      initFailed = true;
-    }
-    if (!closeBtn) {
-      console.error("The Flow Guardian: Could not find element #close-reset.");
-      initFailed = true;
-    }
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        if (isActive) return;
+        isActive = true;
+        startBtn.classList.add('fade-out');
+        setTimeout(() => { startBtn.style.display = 'none'; }, 300);
+        setTimeout(() => { if (skipBtn) { skipBtn.style.display = 'block'; skipBtn.classList.add('fade-in'); } }, 2000);
 
-    if (initFailed) {
-      // Display a user-friendly error on the page if initialization fails.
-      document.body.innerHTML = '<div style="font-family: sans-serif; padding: 20px; text-align: center; color: #c00;">' +
-        '<h3>Animation Failed to Load</h3>' +
-        '<p>A required component of the page was not found. Please try reloading the extension.</p>' +
-        '<p><i>Error code: INIT_FAILURE</i></p>' +
-        '</div>';
-      return;
-    }
+        startTime = Date.now();
+        currentCycleCount = 0;
+        lastPhase = '';
 
-    // Get the canvas context.
-    ctx = canvas.getContext('2d');
+        startAmbientSound();
+        startQuoteRotation();
+        updateBreathingText('Let\'s begin', true);
 
-    // Attach event listeners.
-    startBtn.addEventListener('click', () => {
-      if (isActive) return;
-      isActive = true;
-      
-      // Smooth button fade out
-      startBtn.classList.add('fade-out');
-      setTimeout(() => {
-        startBtn.style.display = 'none';
-      }, 300);
-      
-      // Show skip button after session starts
-      setTimeout(() => {
-        if (skipBtn) {
-          skipBtn.style.display = 'block';
-          skipBtn.classList.add('fade-in');
-        }
-      }, 2000);
-      
-      startTime = Date.now();
-      currentCycleCount = 0;
-      lastState = '';
-      
-      // Start ambient sound if enabled
-      startAmbientSound();
-      
-      // Start quote rotation when session starts
-      startQuoteRotation();
-      
-      // Update text smoothly
-      updateBreathingText("Let's begin", true);
-      
-      // Speak introduction with proper timing
-      speakWithPause("Let's begin.", 2000, () => {
-        // After pause, start breathing animation
-        animate();
-      });
-    });
+        // Log reset start
+        safeSend({ type: 'logReset', resetType: _resetType, mood: _mood });
 
-    // Skip button handler
-    if (skipBtn) {
-      skipBtn.addEventListener('click', () => {
-        completeSession();
+        speakWithPause('Let\'s begin.', 1500, () => animate());
       });
     }
 
-    // Return to work button
-    if (returnToWorkBtn) {
-      returnToWorkBtn.addEventListener('click', () => {
-        closePageGently();
-      });
-    }
+    if (skipBtn) skipBtn.addEventListener('click', () => completeSession());
+    if (returnBtn) returnBtn.addEventListener('click', () => closePageGently());
+    if (anotherBtn) anotherBtn.addEventListener('click', () => location.reload());
+    if (closeBtn) closeBtn.addEventListener('click', (e) => { e.preventDefault(); closePageGently(); });
 
-    // Another breath button
-    if (anotherBreathBtn) {
-      anotherBreathBtn.addEventListener('click', () => {
-        // Reset and restart session
-        location.reload();
-      });
-    }
-
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      closePageGently();
-    });
-
-    draw(0, 'Inhale'); // Initial draw
+    draw(0); // Initial draw
   }
 
-  function updateBreathingText(text, smooth = true) {
-    if (!breathingText) return;
-    
-    if (smooth) {
-      breathingText.classList.add('fade-out');
-      setTimeout(() => {
-        breathingText.textContent = text;
-        breathingText.classList.remove('fade-out');
-        breathingText.classList.add('fade-in');
-        setTimeout(() => {
-          breathingText.classList.remove('fade-in');
-        }, 600);
-      }, 300);
+  function buildProfile() {
+    const base = PROFILES[_resetType] || PROFILES.mental;
+    // Circadian modifier
+    const h = new Date().getHours();
+    let mult = 1.0;
+    if (h < 6 || h >= 21) mult = 1.25;       // night: slower
+    else if (h >= 17) mult = 1.1;             // evening: slightly slower
+
+    return {
+      ...base,
+      breathIn: Math.round(base.breathIn * (h >= 17 || h < 6 ? mult : 1)),
+      breathOut: Math.round(base.breathOut * mult),
+      totalCycle: Math.round(base.breathIn * mult + base.hold + base.breathOut * mult),
+    };
+  }
+
+  function applyProfileAccent(profile) {
+    document.documentElement.style.setProperty('--accent', profile.accent);
+    document.documentElement.style.setProperty('--teal-soft', profile.accent);
+  }
+
+  // ── Breathing Animation ───────────────────────────────────────────────
+  function animate() {
+    if (!isActive) return;
+    const now = Date.now();
+    const elapsed = now - startTime;
+    const { breathIn, hold, breathOut, totalCycle, cycles } = _profile;
+    const cycleElapsed = elapsed % totalCycle;
+    let progress = 0;
+    let phase = '';
+
+    if (cycleElapsed < breathIn) {
+      progress = easeInOutQuad(cycleElapsed / breathIn);
+      phase = 'Inhale';
+    } else if (cycleElapsed < breathIn + hold) {
+      progress = 1;
+      phase = 'Hold';
     } else {
-      breathingText.textContent = text;
+      const t = (cycleElapsed - breathIn - hold) / breathOut;
+      progress = 1 - easeOutQuart(t);
+      phase = 'Exhale';
     }
-  }
 
-  function updateProgressIndicator(cycleNum) {
-    progressDots.forEach((dot, index) => {
-      if (index < cycleNum) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
+    if (phase !== lastPhase) {
+      if (phase === 'Inhale') {
+        currentCycleCount++;
+        updateProgressDots(currentCycleCount);
+        if (currentCycleCount > cycles) { completeSession(); return; }
+        speak('Inhale.');
+        if (captionEl) captionEl.textContent = 'Breathe in slowly...';
+      } else if (phase === 'Hold') {
+        if (captionEl) captionEl.textContent = 'Hold gently...';
+      } else if (phase === 'Exhale') {
+        speak('Exhale.');
+        if (captionEl) captionEl.textContent = 'Release slowly...';
       }
-    });
+      lastPhase = phase;
+      if (breathingText && breathingText.textContent !== phase) breathingText.textContent = phase;
+    }
+
+    if (breathGlow) breathGlow.style.opacity = 0.4 + progress * 0.35;
+    draw(progress);
+    animationFrameId = requestAnimationFrame(animate);
   }
 
+  function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+  // ── Draw (Canvas) ─────────────────────────────────────────────────────
+  function draw(progress) {
+    if (!ctx || !canvas) return;
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2;
+    const accent = _profile ? _profile.accent : '#68d391';
+
+    // Aura
+    const auraR = 100 + progress * 110;
+    const auraA = 0.12 + progress * 0.20;
+    const auraG = ctx.createRadialGradient(cx, cy, 30, cx, cy, auraR);
+    auraG.addColorStop(0, `${accent}${alpha(auraA * 1.2)}`);
+    auraG.addColorStop(0.5, `${accent}${alpha(auraA * 0.7)}`);
+    auraG.addColorStop(1, `${accent}00`);
+    ctx.beginPath(); ctx.arc(cx, cy, auraR, 0, Math.PI * 2);
+    ctx.fillStyle = auraG; ctx.fill();
+
+    // Body
+    ctx.save();
+    ctx.translate(cx, cy + 80);
+    const floatY = Math.sin(Date.now() / 3000) * 3;
+    ctx.translate(0, floatY);
+
+    // Legs
+    ctx.fillStyle = '#2d3748';
+    ctx.beginPath(); ctx.ellipse(-50, 20, 60, 25, 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(50, 20, 60, 25, -0.2, 0, Math.PI * 2); ctx.fill();
+
+    // Torso
+    const tx = 1 + progress * 0.12, ty = 1 + progress * 0.08;
+    const shoulderDrop = (1 - progress) * 6;
+    ctx.save(); ctx.scale(tx, ty);
+    ctx.beginPath();
+    ctx.moveTo(-45, 0);
+    ctx.bezierCurveTo(-50, -80 - shoulderDrop, 50, -80 - shoulderDrop, 45, 0);
+    ctx.lineTo(40, 30); ctx.bezierCurveTo(30, 50, -30, 50, -40, 30);
+    ctx.closePath();
+    ctx.fillStyle = accent; ctx.fill();
+    ctx.restore();
+
+    // Head
+    ctx.save();
+    ctx.translate(0, -100 - progress * 3);
+    ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbd38d'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -10, 38, Math.PI, 0);
+    ctx.fillStyle = '#1a202c'; ctx.fill();
+    ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(-12, 5, 6, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.arc(12, 5, 6, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 15, 9, 0.15, Math.PI - 0.15); ctx.stroke();
+    ctx.restore();
+
+    // Arms
+    ctx.strokeStyle = '#fbd38d'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-45, -50 - progress * 1.5); ctx.quadraticCurveTo(-70, -10, -60, 25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(45, -50 - progress * 1.5); ctx.quadraticCurveTo(70, -10, 60, 25); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function alpha(a) {
+    return Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, '0');
+  }
+
+  // ── Session Lifecycle ─────────────────────────────────────────────────
   function completeSession() {
     isActive = false;
     cancelAnimationFrame(animationFrameId);
-    
-    // Clear quote rotation
-    if (quoteInterval) {
-      clearInterval(quoteInterval);
-      quoteInterval = null;
-    }
-    
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    
-    // Hide skip button and supportive text
+    if (quoteInterval) { clearInterval(quoteInterval); quoteInterval = null; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+
     const skipBtn = document.getElementById('skip-reset');
-    if (skipBtn) {
-      skipBtn.style.display = 'none';
-    }
-    
-    const supportiveText = document.querySelector('.supportive-text');
-    if (supportiveText) {
-      supportiveText.style.opacity = '0';
-    }
-    
-    // Clear breathing text and captions
-    if (breathingText) {
-      breathingText.textContent = '';
-    }
-    if (captionEl) {
-      captionEl.textContent = '';
-    }
-    if (quoteEl) {
-      quoteEl.textContent = '';
-    }
-    
-    // 1. Moment of stillness (1.5 seconds)
+    if (skipBtn) skipBtn.style.display = 'none';
+    const supportive = document.querySelector('.supportive-text');
+    if (supportive) supportive.style.opacity = '0';
+    if (breathingText) breathingText.textContent = '';
+    if (captionEl) captionEl.textContent = '';
+    if (quoteEl) quoteEl.textContent = '';
+
     setTimeout(() => {
-      // 2. Show completion message
       showCompletionMessage();
-      
-      // 3. After completion message fades out, show action buttons
-      setTimeout(() => {
-        showCompletionActions();
-      }, 4000); // After message shows for 3 seconds
-      
-      // 4. Stop ambient sound after completion message starts
-      setTimeout(() => {
-        stopAmbientSound();
-      }, 500);
-      
-    }, 1500); // Stillness duration
+      setTimeout(() => showCompletionActions(), 3500);
+      setTimeout(() => stopAmbientSound(), 500);
+    }, 1200);
+  }
+
+  function showCompletionMessage() {
+    const msg = COMPLETION_MSGS[Math.floor(Math.random() * COMPLETION_MSGS.length)];
+    const el = document.createElement('div');
+    el.className = 'completion-message';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => { if (document.body.contains(el)) el.classList.add('show'); }, 100);
+    setTimeout(() => {
+      if (document.body.contains(el)) { el.classList.remove('show'); setTimeout(() => document.body.removeChild(el), 1000); }
+    }, 3000);
   }
 
   function showCompletionActions() {
-    const completionActions = document.getElementById('completion-actions');
+    const actions = document.getElementById('completion-actions');
     const closeLink = document.getElementById('close-reset');
-    
-    if (completionActions) {
-      completionActions.style.display = 'flex';
-      setTimeout(() => {
-        completionActions.classList.add('show');
-      }, 100);
-    }
-    
-    // Hide the "Back to work" link since we have the button now
-    if (closeLink) {
-      closeLink.style.opacity = '0';
-    }
+    if (actions) { actions.style.display = 'flex'; setTimeout(() => actions.classList.add('show'), 100); }
+    if (closeLink) closeLink.style.opacity = '0';
   }
 
   function closePageGently() {
-    // Fade out the entire page
     document.body.classList.add('fade-out-page');
-    
-    // Stop everything
     isActive = false;
     cancelAnimationFrame(animationFrameId);
-    
-    if (quoteInterval) {
-      clearInterval(quoteInterval);
-    }
-    
+    if (quoteInterval) clearInterval(quoteInterval);
     stopAmbientSound();
-    
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    
-    // Wait for fade animation, then close
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     setTimeout(() => {
-      try {
-        chrome.runtime.sendMessage({ type: 'resetFatigue' });
-      } catch (err) {}
+      safeSend({ type: 'resetFatigue' });
       window.close();
     }, 1000);
   }
 
+  // ── Progress Dots ─────────────────────────────────────────────────────
+  function updateProgressDots(cycle) {
+    progressDots.forEach((dot, i) => dot.classList.toggle('active', i < cycle));
+  }
+
+  // ── Quote Rotation ────────────────────────────────────────────────────
   function startQuoteRotation() {
-    if (!quoteEl || activeQuotes.length === 0) return;
-    
-    // Show first quote
-    showQuote(0);
-    
-    // Rotate quotes every 8 seconds (longer visibility)
+    if (!quoteEl) return;
+    const style = _settings.quoteStyle || 'calm';
+    const quotes = QUOTES[style] || [];
+    if (!quotes.length) return;
+    showQuote(quotes, 0);
     quoteInterval = setInterval(() => {
-      currentQuoteIndex = (currentQuoteIndex + 1) % activeQuotes.length;
-      showQuote(currentQuoteIndex);
+      currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+      showQuote(quotes, currentQuoteIndex);
     }, 8000);
   }
 
-  function showQuote(index) {
-    if (!quoteEl || activeQuotes.length === 0) return;
-    
-    // If this is the first quote, show it immediately without fade
-    if (index === 0 && !quoteEl.textContent) {
-      quoteEl.textContent = activeQuotes[index];
-      quoteEl.style.opacity = '0.75';
-      return;
-    }
-    
-    // Fade out current quote (1s)
+  function showQuote(quotes, idx) {
+    if (!quoteEl || !quotes.length) return;
+    if (idx === 0 && !quoteEl.textContent) { quoteEl.textContent = quotes[0]; quoteEl.style.opacity = '0.75'; return; }
     quoteEl.classList.add('fade-out');
-    
-    // After fade out, change text and fade in (1s)
-    setTimeout(() => {
-      quoteEl.textContent = activeQuotes[index];
-      quoteEl.classList.remove('fade-out');
-      quoteEl.classList.add('fade-in');
-      
-      // Remove fade-in class after transition
-      setTimeout(() => {
-        quoteEl.classList.remove('fade-in');
-      }, 1000);
-    }, 1000);
+    setTimeout(() => { quoteEl.textContent = quotes[idx]; quoteEl.classList.remove('fade-out'); quoteEl.classList.add('fade-in'); setTimeout(() => quoteEl.classList.remove('fade-in'), 1000); }, 1000);
   }
 
-  // Time-of-day awareness
-  function getTimeOfDay() {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 18) return 'afternoon';
-    if (hour >= 18 && hour < 23) return 'evening';
-    return 'night';
+  // ── Breathing Text ────────────────────────────────────────────────────
+  function updateBreathingText(text, smooth = true) {
+    if (!breathingText) return;
+    if (!smooth) { breathingText.textContent = text; return; }
+    breathingText.classList.add('fade-out');
+    setTimeout(() => { breathingText.textContent = text; breathingText.classList.remove('fade-out'); breathingText.classList.add('fade-in'); setTimeout(() => breathingText.classList.remove('fade-in'), 600); }, 300);
   }
 
-  function getBreathingTimingForTime() {
-    const timeOfDay = getTimeOfDay();
-    
-    // Evening/night: slightly slower, deeper calm
-    if (timeOfDay === 'evening' || timeOfDay === 'night') {
-      return {
-        breathIn: 5000,   // 5 seconds
-        hold: 4000,       // 4 seconds
-        breathOut: 9000   // 9 seconds (extra slow)
-      };
-    }
-    
-    // Default (morning/afternoon): standard timing
-    return {
-      breathIn: 4000,   // 4 seconds
-      hold: 4000,       // 4 seconds
-      breathOut: 8000   // 8 seconds
-    };
+  // ── Speech Synthesis ──────────────────────────────────────────────────
+  function speak(text, onEnd = null) {
+    if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const preferred = speechVoices.find((v) => (v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Samantha')) && v.lang.startsWith('en'));
+    if (preferred) u.voice = preferred;
+    u.rate = 0.75; u.pitch = 1.0; u.volume = 0.9;
+    if (onEnd) u.onend = onEnd;
+    window.speechSynthesis.speak(u);
+    if (captionEl) captionEl.textContent = text;
   }
 
-  // Ambient sound generation (Web Audio API)
+  function speakWithPause(text, pause, cb) {
+    speak(text, () => setTimeout(() => { if (cb) cb(); }, pause));
+  }
+
+  // ── Ambient Sound (Web Audio API) ─────────────────────────────────────
+  let audioContext = null, ambientSource = null;
+
   function startAmbientSound() {
-    if (!preferences.ambientSound) return;
-    
+    if (!(_settings && _settings.ambientSound)) return;
     try {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // Resume audio context if suspended (required on some browsers)
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-      
-      // Create a very subtle ambient pad sound
-      const oscillator1 = audioContext.createOscillator();
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      // Very low frequencies for calm ambient
-      oscillator1.frequency.value = 220; // A3
-      oscillator2.frequency.value = 330; // E4
-      
-      oscillator1.type = 'sine';
-      oscillator2.type = 'sine';
-      
-      // Very low volume
-      gainNode.gain.value = 0;
-      
-      // Connect nodes
-      oscillator1.connect(gainNode);
-      oscillator2.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Start oscillators
-      oscillator1.start();
-      oscillator2.start();
-      
-      ambientSource = { oscillator1, oscillator2, gainNode, stopped: false };
-      
-      // Fade in over 3 seconds
-      gainNode.gain.linearRampToValueAtTime(0.02, audioContext.currentTime + 3);
-      
-    } catch (err) {
-      console.log('Ambient sound not available:', err);
-    }
+      if (audioContext.state === 'suspended') audioContext.resume();
+      const o1 = audioContext.createOscillator();
+      const o2 = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      o1.frequency.value = 220; o2.frequency.value = 330;
+      o1.type = 'sine'; o2.type = 'sine';
+      gain.gain.value = 0;
+      o1.connect(gain); o2.connect(gain); gain.connect(audioContext.destination);
+      o1.start(); o2.start();
+      ambientSource = { o1, o2, gain, stopped: false };
+      gain.gain.linearRampToValueAtTime(0.02, audioContext.currentTime + 3);
+    } catch (e) { /* no audio available */ }
   }
 
   function stopAmbientSound() {
-    if (!ambientSource || !audioContext) return;
-    if (ambientSource.stopped) return; // Already stopped
-    
+    if (!ambientSource || !audioContext || ambientSource.stopped) return;
     try {
-      // Check if audio context is still valid
-      if (audioContext.state === 'closed') {
-        ambientSource = null;
-        audioContext = null;
-        return;
-      }
-      
-      // Fade out over 2 seconds
-      ambientSource.gainNode.gain.cancelScheduledValues(audioContext.currentTime);
-      ambientSource.gainNode.gain.setValueAtTime(ambientSource.gainNode.gain.value, audioContext.currentTime);
-      ambientSource.gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2);
-      
-      // Mark as stopped to prevent double-stop
+      ambientSource.gain.gain.cancelScheduledValues(audioContext.currentTime);
+      ambientSource.gain.gain.setValueAtTime(ambientSource.gain.gain.value, audioContext.currentTime);
+      ambientSource.gain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2);
       ambientSource.stopped = true;
-      
       setTimeout(() => {
-        if (ambientSource) {
-          try {
-            ambientSource.oscillator1.stop();
-            ambientSource.oscillator2.stop();
-          } catch (e) {
-            // Oscillators already stopped
-          }
-          ambientSource = null;
-        }
-        if (audioContext) {
-          try {
-            audioContext.close();
-          } catch (e) {
-            // Context already closed
-          }
-          audioContext = null;
-        }
+        try { ambientSource.o1.stop(); ambientSource.o2.stop(); } catch (e) { }
+        try { audioContext.close(); } catch (e) { }
+        ambientSource = null; audioContext = null;
       }, 2100);
-    } catch (err) {
-      console.log('Error stopping ambient sound:', err);
-      // Cleanup anyway
-      ambientSource = null;
-      audioContext = null;
-    }
+    } catch (e) { ambientSource = null; audioContext = null; }
   }
 
-  // Session completion feedback
-  function showCompletionMessage() {
-    if (!document.body) return; // Safety check
-    
-    const message = completionMessages[Math.floor(Math.random() * completionMessages.length)];
-    
-    // Create completion message element
-    const completionEl = document.createElement('div');
-    completionEl.className = 'completion-message';
-    completionEl.textContent = message;
-    document.body.appendChild(completionEl);
-    
-    // Fade in
-    setTimeout(() => {
-      if (document.body.contains(completionEl)) {
-        completionEl.classList.add('show');
-      }
-    }, 100);
-    
-    // Fade out after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(completionEl)) {
-        completionEl.classList.remove('show');
-        setTimeout(() => {
-          if (document.body.contains(completionEl)) {
-            document.body.removeChild(completionEl);
-          }
-        }, 1000);
-      }
-    }, 3000);
+  // ── Theme ─────────────────────────────────────────────────────────────
+  function applyTheme(name) {
+    const themes = {
+      'forest-calm': { a: '#68d391', b: '#4fd1c5', bg: '#0d1f0d' },
+      'ocean-deep': { a: '#63b3ed', b: '#9f7aea', bg: '#0d1b2a' },
+      'dusk-warm': { a: '#f6ad55', b: '#f56565', bg: '#1a0e0a' },
+      'minimal-light': { a: '#6b7553', b: '#8b9467', bg: '#f7f3ef' },
+    };
+    const t = themes[name] || themes['forest-calm'];
+    document.documentElement.style.setProperty('--teal-soft', t.a);
+    document.documentElement.style.setProperty('--purple-soft', t.b);
+    document.documentElement.style.setProperty('--bg-dark', t.bg);
+    document.body.setAttribute('data-theme', name);
   }
 
-  function speak(text, onEnd = null) {
-    // Guard against unavailable Speech Synthesis API
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel(); // Stop current
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Find a warm, natural human voice
-      const preferredVoice = speechVoices.find(v => 
-        (v.name.includes('Natural') || v.name.includes('Premium') || 
-         v.name.includes('Samantha') || v.name.includes('Female') ||
-         v.name.includes('Enhanced')) && v.lang.startsWith('en')
-      );
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-      
-      // Warm, natural human voice settings - slower, softer
-      utterance.rate = 0.75;  // Slower for calm, natural pacing
-      utterance.pitch = 1.0;  // Natural pitch
-      utterance.volume = 0.9; // Slightly softer
-      
-      // Call onEnd callback when speech finishes
-      if (onEnd) {
-        utterance.onend = onEnd;
-      }
-      
-      window.speechSynthesis.speak(utterance);
-    } else if (onEnd) {
-      // If no speech synthesis, still call the callback
-      onEnd();
-    }
-    
-    // Guard against missing caption element
-    if (captionEl) {
-      captionEl.textContent = text;
-    }
+  // ── Helpers ───────────────────────────────────────────────────────────
+  function safeSend(msg) {
+    try {
+      chrome.runtime.sendMessage(msg, () => { void chrome.runtime.lastError; });
+    } catch (e) { }
   }
 
-  function speakWithPause(text, pauseDuration, callback) {
-    // Speak the text
-    speak(text, () => {
-      // After speaking finishes, wait for the pause duration
-      setTimeout(() => {
-        if (callback) callback();
-      }, pauseDuration);
-    });
-  }
-
-  function animate() {
-    if (!isActive) return;
-
-    const now = Date.now();
-    const totalElapsed = now - startTime;
-    const cycleElapsed = totalElapsed % TOTAL_CYCLE;
-    let progress = 0;
-    let state = '';
-
-    if (cycleElapsed < BREATH_IN) {
-      // Inhale phase: smooth expansion
-      const t = cycleElapsed / BREATH_IN;
-      progress = easeInOutQuad(t);
-      state = 'Inhale';
-    } else if (cycleElapsed < BREATH_IN + HOLD) {
-      // Hold phase: completely still at full expansion
-      progress = 1;
-      state = 'Hold';
-    } else if (cycleElapsed < BREATH_IN + HOLD + BREATH_OUT) {
-      // Exhale phase: very gentle, slower contraction (8 seconds - much longer and calmer)
-      const t = (cycleElapsed - (BREATH_IN + HOLD)) / BREATH_OUT;
-      progress = 1 - easeOutQuart(t);
-      state = 'Exhale';
-    } else {
-      // Seamless loop back to start
-      progress = 0;
-      state = 'Inhale';
-    }
-
-    // Natural voice guidance - minimal, aligned with animation timing
-    if (state !== lastState) {
-      if (state === 'Inhale') {
-        currentCycleCount++;
-        // Update progress indicator
-        updateProgressIndicator(currentCycleCount);
-        
-        // Check if we should stop BEFORE announcing the next cycle
-        if (currentCycleCount > MAX_CYCLES) {
-          completeSession();
-          return;
-        }
-        // Just say "Inhale" - minimal guidance
-        speak("Inhale.");
-        if (captionEl) captionEl.textContent = "Inhale slowly...";
-      } else if (state === 'Hold') {
-        // Silent hold - no voice, just visual feedback
-        if (captionEl) captionEl.textContent = "Hold...";
-      } else if (state === 'Exhale') {
-        // Just say "Exhale" - then silence
-        speak("Exhale.");
-        if (captionEl) captionEl.textContent = "Exhale gently...";
-      }
-      lastState = state;
-    }
-
-    // Update main text display
-    const stateText = state === 'Inhale' ? 'Inhale' : state === 'Hold' ? 'Hold' : 'Exhale';
-    if (breathingText && breathingText.textContent !== stateText) {
-      breathingText.textContent = stateText;
-    }
-    
-    // Sync breath glow with animation
-    if (breathGlow) {
-      const glowIntensity = 0.4 + (progress * 0.3);
-      breathGlow.style.opacity = glowIntensity;
-    }
-    
-    draw(progress, state);
-    animationFrameId = requestAnimationFrame(animate);
-  }
-
-  // Easing functions for organic, natural motion
-  function easeInOutQuad(t) {
-    // Gentle, smooth acceleration and deceleration for inhale
-    // Less aggressive than standard quad for more natural feel
-    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  }
-
-  function easeOutQuart(t) {
-    // Very gentle, calming motion for exhale - slower throughout
-    // Using quartic (power of 4) for ultra-smooth, prolonged deceleration
-    return 1 - Math.pow(1 - t, 4);
-  }
-
-  function draw(progress, state) {
-    if (!ctx || !canvas) {
-      console.error("Drawing context not available. Initialization likely failed.");
-      return;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-
-    // Use the progress directly (already eased in animate function)
-    const ease = progress;
-
-    // 1. Soft glowing aura / halo synchronized with breath (Pastel Teal & Purple)
-    const auraRadius = 100 + ease * 110; // Expands more noticeably
-    const auraAlpha = 0.12 + ease * 0.20; // More visible glow
-    const auraGradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, auraRadius);
-    auraGradient.addColorStop(0, `rgba(79, 209, 197, ${auraAlpha * 1.2})`); // Brighter center
-    auraGradient.addColorStop(0.4, `rgba(79, 209, 197, ${auraAlpha * 0.8})`); // Teal mid
-    auraGradient.addColorStop(0.7, `rgba(159, 122, 234, ${auraAlpha * 0.5})`); // Purple transition
-    auraGradient.addColorStop(1, 'rgba(159, 122, 234, 0)'); // Fade to transparent
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, auraRadius, 0, Math.PI * 2);
-    ctx.fillStyle = auraGradient;
-    ctx.fill();
-
-    // 2. Character Setup
-    ctx.save();
-    ctx.translate(centerX, centerY + 80);
-    
-    // Very subtle float for organic feel (gentler than before)
-    const floatY = Math.sin(Date.now() / 3000) * 3;
-    ctx.translate(0, floatY);
-
-    // 3. Legs (Meditation Pose)
-    ctx.fillStyle = '#2d3748';
-    // Left Leg
-    ctx.beginPath();
-    ctx.ellipse(-50, 20, 60, 25, 0.2, 0, Math.PI * 2);
-    ctx.fill();
-    // Right Leg
-    ctx.beginPath();
-    ctx.ellipse(50, 20, 60, 25, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 4. Torso (Belly & Chest Expansion) - more pronounced breathing
-    const torsoScaleX = 1 + ease * 0.12; // More visible expansion
-    const torsoScaleY = 1 + ease * 0.08;
-    const shoulderDrop = (1 - ease) * 6; // Shoulders relax during inhale
-
-    ctx.save();
-    ctx.scale(torsoScaleX, torsoScaleY);
-    ctx.beginPath();
-    ctx.moveTo(-45, 0);
-    ctx.bezierCurveTo(-50, -80 - shoulderDrop, 50, -80 - shoulderDrop, 45, 0);
-    ctx.lineTo(40, 30);
-    ctx.bezierCurveTo(30, 50, -30, 50, -40, 30);
-    ctx.closePath();
-    ctx.fillStyle = '#4fd1c5'; // Teal shirt
-    ctx.fill();
-    ctx.restore();
-
-    // 5. Head & Face
-    ctx.save();
-    const headY = -100 - ease * 3; // Subtle head movement with breath (reduced)
-    ctx.translate(0, headY);
-    
-    // Head shape
-    ctx.beginPath();
-    ctx.arc(0, 0, 35, 0, Math.PI * 2);
-    ctx.fillStyle = '#fbd38d'; // Warm skin tone
-    ctx.fill();
-
-    // Hair
-    ctx.beginPath();
-    ctx.arc(0, -10, 38, Math.PI, 0);
-    ctx.fillStyle = '#1a202c';
-    ctx.fill();
-
-    // Eyes (Gently closed, peaceful expression)
-    ctx.strokeStyle = '#2d3748';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    
-    // Left eye - gentle closed curve
-    ctx.beginPath();
-    ctx.arc(-12, 5, 6, 0.15, Math.PI - 0.15);
-    ctx.stroke();
-    // Right eye - gentle closed curve
-    ctx.beginPath();
-    ctx.arc(12, 5, 6, 0.15, Math.PI - 0.15);
-    ctx.stroke();
-
-    // Soft, calm smile
-    ctx.beginPath();
-    ctx.arc(0, 15, 9, 0.15, Math.PI - 0.15);
-    ctx.stroke();
-
-    ctx.restore();
-
-    // 6. Arms (relaxed, minimal movement)
-    ctx.strokeStyle = '#fbd38d';
-    ctx.lineWidth = 14;
-    ctx.lineCap = 'round';
-    
-    // Left Arm (resting peacefully on knee)
-    ctx.beginPath();
-    ctx.moveTo(-45, -50 - ease * 1.5);
-    ctx.quadraticCurveTo(-70, -10, -60, 25);
-    ctx.stroke();
-    
-    // Right Arm (resting peacefully on knee)
-    ctx.beginPath();
-    ctx.moveTo(45, -50 - ease * 1.5);
-    ctx.quadraticCurveTo(70, -10, 60, 25);
-    ctx.stroke();
-
-    ctx.restore();
-  }
 })();

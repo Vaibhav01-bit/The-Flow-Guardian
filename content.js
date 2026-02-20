@@ -1,45 +1,80 @@
-// content.js
+// content.js — The Flow Guardian v2.0
+// Tracks scrolling, rapid scroll bursts, and visibility changes
 
-// content.js
-// Tracks scrolling distance (in pixels) and sends periodic updates to the background service worker.
+'use strict';
 
-let lastY = window.scrollY || 0;
-let accumulatedDistance = 0;
-let lastScrollTime = Date.now();
-let scrollTimer = null;
-const THROTTLE_INTERVAL = 800; // ms
+let _lastY = window.scrollY || 0;
+let _accumulated = 0;
+let _lastScrollTime = Date.now();
+let _scrollTimer = null;
+let _rapidScrollWindow = [];
+const THROTTLE = 800;       // ms
+const BURST_THRESHOLD = 200; // px
+const BURST_WINDOW = 500;   // ms
 
-function sendScrollData() {
-  chrome.runtime.sendMessage({
-    type: "scrolling",
-    data: {
-      distance: Math.round(accumulatedDistance),
-      lastScrollTime: lastScrollTime
-    }
-  });
-  // reset accumulator
-  accumulatedDistance = 0;
-}
+// ── Scroll Detection ───────────────────────────────────────────────────────
 
 function onScroll() {
   const now = Date.now();
   const currentY = window.scrollY || 0;
-  const delta = Math.abs(currentY - lastY);
-  // accumulate pixel distance (robust across devices)
-  accumulatedDistance += delta;
-  lastY = currentY;
-  lastScrollTime = now;
+  const delta = Math.abs(currentY - _lastY);
 
-  // throttle: schedule send after user stops for THROTTLE_INTERVAL
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    try {
-      sendScrollData();
-    } catch (e) {
-      console.warn('Failed to send scroll data', e);
+  _accumulated += delta;
+  _lastY = currentY;
+  _lastScrollTime = now;
+
+  // Rapid scroll burst detection
+  _rapidScrollWindow.push({ time: now, delta });
+  _rapidScrollWindow = _rapidScrollWindow.filter((e) => now - e.time <= BURST_WINDOW);
+  const windowDelta = _rapidScrollWindow.reduce((s, e) => s + e.delta, 0);
+
+  if (windowDelta > BURST_THRESHOLD) {
+    // Burst threshold crossed — notify background (rate-limited: max once per 10s)
+    if (!_burstCooldown) {
+      _burstCooldown = true;
+      safeSend({ type: 'scrollBurst' });
+      setTimeout(() => { _burstCooldown = false; }, 10000);
     }
-  }, THROTTLE_INTERVAL);
+  }
+
+  // Throttled send of raw scroll data (legacy compat)
+  if (_scrollTimer) clearTimeout(_scrollTimer);
+  _scrollTimer = setTimeout(() => {
+    safeSend({
+      type: 'scrolling',
+      data: {
+        distance: Math.round(_accumulated),
+        lastScrollTime: _lastScrollTime,
+      },
+    });
+    _accumulated = 0;
+  }, THROTTLE);
 }
 
+let _burstCooldown = false;
+
 window.addEventListener('scroll', onScroll, { passive: true });
-console.log('Flow Guardian content script loaded.');
+
+// ── Visibility Change ──────────────────────────────────────────────────────
+
+document.addEventListener('visibilitychange', () => {
+  safeSend({
+    type: 'visibilityChange',
+    hidden: document.hidden,
+  });
+});
+
+// ── Safe Message Send ──────────────────────────────────────────────────────
+
+function safeSend(msg) {
+  try {
+    chrome.runtime.sendMessage(msg, () => {
+      // Suppress "no receiver" errors when background is inactive
+      void chrome.runtime.lastError;
+    });
+  } catch (e) {
+    // Extension context may be invalidated — ignore
+  }
+}
+
+console.log('Flow Guardian v2 content script loaded.');

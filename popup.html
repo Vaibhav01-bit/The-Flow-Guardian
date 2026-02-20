@@ -1,77 +1,270 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The Flow Guardian</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <div class="container">
-      <div class="glass">
-        <header class="header">
-          <div class="title">The Flow Guardian</div>
-          <div class="subtitle">Mindful focus, gentle reminders</div>
-        </header>
 
-        <section class="fatigue-display">
-          <div id="fatigue-ring" class="fatigue-ring" aria-hidden="true">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Flow Guardian</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body data-theme="forest-calm">
+
+  <!-- ── App Shell ──────────────────────────────────────────── -->
+  <div class="app">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-title">🌿 Flow Guardian</div>
+      <div class="fatigue-badge" id="fatigue-badge" title="Current fatigue level">
+        <span id="badge-score">0</span>%
+      </div>
+    </header>
+
+    <!-- ── Tab Navigation ─────────────────────────────────── -->
+    <nav class="tab-nav" role="tablist">
+      <button class="tab-btn tab-btn--active" data-view="today" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Today
+      </button>
+      <button class="tab-btn" data-view="focus" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        Focus
+      </button>
+      <button class="tab-btn" data-view="insights" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        Insights
+      </button>
+      <button class="tab-btn" data-view="settings" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9 2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9 2.83-2.83" />
+        </svg>
+        Settings
+      </button>
+    </nav>
+
+    <!-- ── Views ──────────────────────────────────────────── -->
+    <main class="views">
+
+      <!-- TODAY VIEW -->
+      <section class="view view--active" id="view-today">
+        <!-- Circadian greeting -->
+        <p class="greeting" id="greeting-text">Loading...</p>
+
+        <!-- Focus score ring -->
+        <div class="ring-wrap">
+          <div class="fatigue-ring" id="fatigue-ring">
             <div class="fatigue-ring-inner">
               <div class="score-wrap">
                 <span id="fatigue-score">0</span>
                 <span class="percent-sign">%</span>
               </div>
-              <div id="fatigue-state-text" class="state-text">In the Flow</div>
-            </div>
-          </div>
-        </section>
-
-        <div class="controls">
-          <button id="reset-button" class="button soft">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            Start Micro-Reset
-          </button>
-        </div>
-
-        <!-- Settings Section -->
-        <div class="settings-section">
-          <button id="settings-toggle" class="settings-toggle">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M12 1v6m0 6v6m5.66-13L13 9.64m-2 4.72L6.34 19M23 12h-6m-6 0H1m13-5.66L9.64 11m-4.72 2L1 17.66M23 12l-4.34-5.66L13 11m0 2l5.66 4.34"></path>
-            </svg>
-            <span>Preferences</span>
-          </button>
-
-          <div id="settings-panel" class="settings-panel" style="display: none;">
-            <div class="setting-group">
-              <label class="setting-label">Quote Style</label>
-              <select id="quote-style" class="setting-select">
-                <option value="calm">Calm</option>
-                <option value="encouraging">Encouraging</option>
-                <option value="minimal">Minimal</option>
-                <option value="off">Off</option>
-              </select>
-              <p class="setting-hint">Choose the tone of motivational messages</p>
-            </div>
-
-            <div class="setting-group">
-              <label class="setting-label">Ambient Sound</label>
-              <div class="setting-toggle-wrapper">
-                <input type="checkbox" id="ambient-sound" class="setting-checkbox">
-                <label for="ambient-sound" class="toggle-label">
-                  <span class="toggle-switch"></span>
-                </label>
-                <span class="toggle-text">Off</span>
-              </div>
-              <p class="setting-hint">Subtle background audio during reset</p>
+              <div class="state-text" id="fatigue-state-text">In the Flow</div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <script src="popup.js"></script>
-  </body>
+
+        <!-- Daily stats row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-focus-mins">0</div>
+            <div class="stat-label">Focus min</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-breaks">0</div>
+            <div class="stat-label">Breaks</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value streak-value" id="stat-streak">0</div>
+            <div class="stat-label">Day streak 🔥</div>
+          </div>
+        </div>
+
+        <!-- Last mood -->
+        <div class="last-mood-row" id="last-mood-row" style="display:none;">
+          <span class="last-mood-label">Last mood:</span>
+          <span class="last-mood-emoji" id="last-mood-emoji"></span>
+        </div>
+
+        <!-- CTA -->
+        <button class="btn btn--primary" id="start-reset-btn">
+          🌿 Wellness Reset
+        </button>
+      </section>
+
+      <!-- FOCUS VIEW -->
+      <section class="view view--hidden" id="view-focus">
+        <h2 class="view-title">Focus Session</h2>
+
+        <!-- Duration pills -->
+        <div class="duration-pills" id="duration-pills">
+          <button class="pill pill--active" data-mins="25">25 min</button>
+          <button class="pill" data-mins="45">45 min</button>
+          <button class="pill" data-mins="60">60 min</button>
+        </div>
+
+        <!-- Custom duration -->
+        <div class="custom-duration-row">
+          <label class="setting-label" for="custom-mins">Custom</label>
+          <input type="number" id="custom-mins" class="custom-input" min="5" max="180" placeholder="min" />
+        </div>
+
+        <!-- Sound selector -->
+        <div class="setting-row">
+          <label class="setting-label">🎵 Ambient Sound</label>
+          <select id="focus-sound" class="setting-select">
+            <option value="none">Off</option>
+            <option value="rain">Rain</option>
+            <option value="brown">Brown Noise</option>
+            <option value="forest">Forest</option>
+          </select>
+        </div>
+
+        <!-- Distraction blocking toggle -->
+        <div class="setting-row">
+          <label class="setting-label">🚫 Block Distractions</label>
+          <label class="toggle">
+            <input type="checkbox" id="focus-block" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Timer display (shown during active session) -->
+        <div class="timer-display" id="timer-display" style="display:none;">
+          <div class="timer-ring-wrap">
+            <svg class="timer-ring-svg" viewBox="0 0 80 80">
+              <circle class="timer-ring-track" cx="40" cy="40" r="34" />
+              <circle class="timer-ring-fill" id="timer-ring-fill" cx="40" cy="40" r="34" />
+            </svg>
+            <div class="timer-time" id="timer-time">25:00</div>
+          </div>
+        </div>
+
+        <!-- Focus action button -->
+        <button class="btn btn--primary" id="focus-action-btn">
+          ▶ Start Session
+        </button>
+
+        <!-- Active session note -->
+        <p class="focus-note" id="focus-note" style="display:none;">Session running in background</p>
+      </section>
+
+      <!-- INSIGHTS VIEW -->
+      <section class="view view--hidden" id="view-insights">
+        <h2 class="view-title">Insights</h2>
+
+        <!-- Insight cards from analytics -->
+        <div class="insight-cards" id="insight-cards">
+          <div class="insight-card insight-card--loading">Analyzing your patterns...</div>
+        </div>
+
+        <!-- Weekly focus chart -->
+        <div class="chart-block">
+          <div class="chart-title">Focus Score — Last 7 Days</div>
+          <canvas id="chart-focus" width="260" height="80"></canvas>
+        </div>
+
+        <!-- Today hourly fatigue chart -->
+        <div class="chart-block">
+          <div class="chart-title">Tab Switches — Today by Hour</div>
+          <canvas id="chart-tabs" width="260" height="80"></canvas>
+        </div>
+      </section>
+
+      <!-- SETTINGS VIEW -->
+      <section class="view view--hidden" id="view-settings">
+        <h2 class="view-title">Settings</h2>
+
+        <!-- Fatigue sensitivity -->
+        <div class="setting-block">
+          <label class="setting-label">Fatigue Sensitivity
+            <span class="setting-hint">How quickly fatigue builds up</span>
+          </label>
+          <div class="slider-row">
+            <span class="slider-label">Low</span>
+            <input type="range" id="sensitivity-slider" min="2" max="10" step="1" value="6" class="range-slider" />
+            <span class="slider-label">High</span>
+          </div>
+        </div>
+
+        <!-- Theme selector -->
+        <div class="setting-block">
+          <label class="setting-label">Theme</label>
+          <div class="theme-pills" id="theme-pills">
+            <button class="theme-pill" data-theme="forest-calm">🌿 Forest</button>
+            <button class="theme-pill" data-theme="ocean-deep">🌊 Ocean</button>
+            <button class="theme-pill" data-theme="dusk-warm">🌅 Dusk</button>
+            <button class="theme-pill" data-theme="minimal-light">☀️ Light</button>
+          </div>
+        </div>
+
+        <!-- Notification toggle -->
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Notifications</div>
+            <div class="setting-hint">Fatigue alerts and reminders</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="setting-notifications" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature toggles -->
+        <div class="setting-block">
+          <label class="setting-label">Features</label>
+          <div class="feature-toggles">
+            <div class="setting-row">
+              <span class="setting-label-sm">Mood Check</span>
+              <label class="toggle"><input type="checkbox" id="feat-mood" checked /><span
+                  class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label-sm">Circadian Prompts</span>
+              <label class="toggle"><input type="checkbox" id="feat-circadian" checked /><span
+                  class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <span class="setting-label-sm">Focus Mode</span>
+              <label class="toggle"><input type="checkbox" id="feat-focus" checked /><span
+                  class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quote style -->
+        <div class="setting-block">
+          <label class="setting-label" for="quote-style">Reset Quote Style</label>
+          <select id="quote-style" class="setting-select">
+            <option value="calm">Calm</option>
+            <option value="encouraging">Encouraging</option>
+            <option value="minimal">Minimal</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+
+        <!-- Save indicator -->
+        <p class="save-hint" id="save-hint"></p>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
 </html>
