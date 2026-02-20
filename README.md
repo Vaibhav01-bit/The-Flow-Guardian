@@ -11,10 +11,10 @@
 ## Preview
 
 <p align="center">
-  <img alt="Popup — Today view" src="assets/Screenshot%202026-01-15%20135421.png">
+  <img alt="Popup — Today view" src="assets/Screenshot%202026-02-20%20203947.png">
 </p>
 <p align="center">
-  <img alt="Wellness Reset home screen" src="assets/Screenshot%202026-01-15%20140213.png">
+  <img alt="Wellness Reset home screen" src="assets/Screenshot%202026-02-20%20203904.png">
 </p>
 
 ---
