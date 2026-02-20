@@ -1,0 +1,83 @@
+<!-- Option D: Geometric crystal / diamond (focus, clarity, precision) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bgD" cx="50%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#1a3530"/>
+      <stop offset="100%" stop-color="#050b09"/>
+    </radialGradient>
+    <linearGradient id="crystalGradD1" x1="0%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#b2f5ea"/>
+      <stop offset="100%" stop-color="#4fd1c5"/>
+    </linearGradient>
+    <linearGradient id="crystalGradD2" x1="100%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#68d391"/>
+      <stop offset="100%" stop-color="#276749"/>
+    </linearGradient>
+    <linearGradient id="crystalGradD3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ae6b4"/>
+      <stop offset="100%" stop-color="#38a169"/>
+    </linearGradient>
+    <filter id="crystalGlowD" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="edgeGlowD" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgD)"/>
+
+  <!-- Ambient glow behind crystal -->
+  <ellipse cx="64" cy="62" rx="38" ry="40" fill="#4fd1c5" fill-opacity="0.07"/>
+
+  <!-- Outer ring -->
+  <circle cx="64" cy="64" r="58" fill="none" stroke="url(#crystalGradD1)"
+    stroke-width="1.2" stroke-opacity="0.3"
+    stroke-dasharray="170 192" stroke-linecap="round"
+    transform="rotate(-115 64 64)"/>
+
+  <!-- Crystal / hexagonal gem shape -->
+  <g filter="url(#crystalGlowD)">
+    <!-- Top face (bright teal) -->
+    <polygon points="64,16 90,36 90,60 64,72 38,60 38,36"
+      fill="url(#crystalGradD1)" opacity="0.92"/>
+    <!-- Bottom face (green) -->
+    <polygon points="64,72 90,60 90,84 64,100 38,84 38,60"
+      fill="url(#crystalGradD2)" opacity="0.88"/>
+    <!-- Left facet highlight -->
+    <polygon points="38,36 64,16 64,72 38,60"
+      fill="url(#crystalGradD3)" opacity="0.5"/>
+    <!-- Top highlight sheen -->
+    <ellipse cx="60" cy="32" rx="10" ry="6" fill="white" fill-opacity="0.18"
+      transform="rotate(-20 60 32)"/>
+  </g>
+
+  <!-- Crystal edge lines -->
+  <g filter="url(#edgeGlowD)" opacity="0.6">
+    <!-- Top hexagon edges -->
+    <polygon points="64,16 90,36 90,60 64,72 38,60 38,36"
+      fill="none" stroke="#b2f5ea" stroke-width="1"/>
+    <!-- Bottom hexagon edges -->
+    <polygon points="64,72 90,60 90,84 64,100 38,84 38,60"
+      fill="none" stroke="#68d391" stroke-width="1"/>
+    <!-- Vertical edge lines connecting top to bottom -->
+    <line x1="64" y1="16" x2="64" y2="100" stroke="#a8edbc" stroke-width="0.7" opacity="0.4"/>
+    <line x1="90" y1="36" x2="90" y2="84" stroke="#a8edbc" stroke-width="0.7" opacity="0.4"/>
+    <line x1="38" y1="36" x2="38" y2="84" stroke="#a8edbc" stroke-width="0.7" opacity="0.4"/>
+  </g>
+
+  <!-- Central equator ring glow -->
+  <ellipse cx="64" cy="60" rx="28" ry="7" fill="none" stroke="#81e6d9"
+    stroke-width="1" stroke-opacity="0.45" filter="url(#edgeGlowD)"/>
+
+  <!-- Sparkle dots -->
+  <circle cx="100" cy="28" r="2.5" fill="#b2f5ea" opacity="0.55"/>
+  <circle cx="28"  cy="28" r="2"   fill="#68d391"  opacity="0.45"/>
+  <circle cx="64"  cy="110" r="2"  fill="#4fd1c5"  opacity="0.4"/>
+
+  <!-- Border -->
+  <circle cx="64" cy="64" r="63" fill="none" stroke="#4fd1c5" stroke-width="0.8" stroke-opacity="0.18"/>
+</svg>

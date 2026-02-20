@@ -293,12 +293,22 @@ function triggerSoftNudge() {
 }
 
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-  if (notifId === 'fatigue-alert' && btnIdx === 0) openResetPage();
+  if (notifId === 'fatigue-alert' && btnIdx === 0) openWellnessPage();
 });
 
-function openResetPage() {
-  chrome.tabs.create({ url: chrome.runtime.getURL('reset.html') });
+// Clicking the notification body also opens the wellness page
+chrome.notifications.onClicked.addListener((notifId) => {
+  if (notifId === 'fatigue-alert' || notifId === 'focus-complete') openWellnessPage();
+  chrome.notifications.clear(notifId);
+});
+
+function openWellnessPage() {
+  chrome.tabs.create({ url: chrome.runtime.getURL('wellness.html') });
 }
+
+// Keep legacy alias
+function openResetPage() { openWellnessPage(); }
+
 
 // ── Focus Sessions ─────────────────────────────────────────────────────────
 

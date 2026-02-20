@@ -1,0 +1,63 @@
+<!-- Option A: Shield with Lightning Bolt (Guardian + Focus) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bgA" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#1e3d1e"/>
+      <stop offset="100%" stop-color="#060f06"/>
+    </radialGradient>
+    <linearGradient id="shieldGradA" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#9ae6b4"/>
+      <stop offset="50%" stop-color="#48bb78"/>
+      <stop offset="100%" stop-color="#276749"/>
+    </linearGradient>
+    <linearGradient id="boltGradA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6e05e"/>
+      <stop offset="100%" stop-color="#ed8936"/>
+    </linearGradient>
+    <filter id="glowA" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="boltGlowA" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgA)"/>
+
+  <!-- Ambient top glow -->
+  <ellipse cx="64" cy="50" rx="42" ry="36" fill="#68d391" fill-opacity="0.06"/>
+
+  <!-- Decorative ring -->
+  <circle cx="64" cy="64" r="58" fill="none" stroke="#68d391" stroke-width="1.2"
+    stroke-opacity="0.3" stroke-dasharray="200 165" stroke-linecap="round"
+    transform="rotate(-130 64 64)"/>
+
+  <!-- Shield shape -->
+  <g filter="url(#glowA)">
+    <path d="M 64,18 L 94,30 L 94,58 C 94,76 80,88 64,96 C 48,88 34,76 34,58 L 34,30 Z"
+      fill="url(#shieldGradA)"/>
+    <!-- Shield shine -->
+    <ellipse cx="54" cy="38" rx="9" ry="14" fill="white" fill-opacity="0.13"
+      transform="rotate(-10 54 38)"/>
+    <!-- Shield border -->
+    <path d="M 64,18 L 94,30 L 94,58 C 94,76 80,88 64,96 C 48,88 34,76 34,58 L 34,30 Z"
+      fill="none" stroke="#a8edbc" stroke-width="1.5" stroke-opacity="0.5"/>
+  </g>
+
+  <!-- Lightning bolt inside shield -->
+  <g filter="url(#boltGlowA)">
+    <polygon points="68,28 56,58 64,58 60,82 76,52 66,52 74,28"
+      fill="url(#boltGradA)" opacity="0.95"/>
+  </g>
+
+  <!-- Corner sparkles -->
+  <circle cx="22" cy="22" r="2" fill="#68d391" opacity="0.4"/>
+  <circle cx="106" cy="22" r="2" fill="#4fd1c5" opacity="0.4"/>
+  <circle cx="64" cy="8"  r="2.5" fill="#68d391" opacity="0.35"/>
+
+  <!-- Outer edge ring -->
+  <circle cx="64" cy="64" r="63" fill="none" stroke="#68d391" stroke-width="0.8" stroke-opacity="0.15"/>
+</svg>

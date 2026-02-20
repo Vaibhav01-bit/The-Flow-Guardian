@@ -86,6 +86,80 @@
       if (moodEmoji) moodEmoji.textContent = MOOD_MAP[data.lastMood] || '';
     }
 
+    // ① Mood input buttons
+    const moodBtns = document.querySelectorAll('.mood-btn');
+    moodBtns.forEach((btn) => {
+      btn.onclick = async () => {
+        const mood = btn.dataset.mood;
+        // Highlight selected
+        moodBtns.forEach((b) => b.classList.remove('mood-btn--active'));
+        btn.classList.add('mood-btn--active');
+        // Save mood
+        await sendMsg({ type: 'logReset', resetType: null, mood });
+        // Update last mood display
+        const moodRow = document.getElementById('last-mood-row');
+        const moodEmoji = document.getElementById('last-mood-emoji');
+        if (moodRow) moodRow.style.display = 'flex';
+        if (moodEmoji) moodEmoji.textContent = MOOD_MAP[mood] || '';
+        // Confirm with brief label change
+        const label = btn.parentElement.previousElementSibling;
+        if (label) {
+          const orig = label.textContent;
+          label.textContent = '✓ Saved!';
+          setTimeout(() => { label.textContent = orig; }, 1500);
+        }
+      };
+    });
+
+    // ④ Fatigue-based reset suggestion
+    const suggBanner = document.getElementById('suggestion-banner');
+    const suggIcon = document.getElementById('suggestion-icon');
+    const suggTitle = document.getElementById('suggestion-title');
+    const suggSub = document.getElementById('suggestion-sub');
+    const suggCta = document.getElementById('suggestion-cta');
+    if (suggBanner && fatiguePct >= 55) {
+      const tabSwitches = data.tabSwitches || 0;
+      const sessionMins = data.sessionMinutes || 0;
+
+      let section = 'mental', icon = '🧠', title = 'Mind overloaded?', sub = 'A mental reset clears the fog';
+      if (tabSwitches > 15) { section = 'eye'; icon = '👁️'; title = 'Eye strain detected'; sub = 'Lots of tab-switching — rest your eyes'; }
+      else if (sessionMins > 90) { section = 'stretch'; icon = '🧘'; title = 'Sitting too long?'; sub = 'A stretch break will help your posture'; }
+      else if (fatiguePct >= 80) { section = 'energy'; icon = '⚡'; title = 'Energy dipping fast'; sub = 'A 45s energy burst will wake you up'; }
+
+      if (suggIcon) suggIcon.textContent = icon;
+      if (suggTitle) suggTitle.textContent = title;
+      if (suggSub) suggSub.textContent = sub;
+      suggBanner.style.display = 'flex';
+
+      if (suggCta) {
+        suggCta.onclick = () => {
+          chrome.tabs.create({ url: chrome.runtime.getURL(`wellness.html#${section}`) });
+          window.close();
+        };
+      }
+    }
+
+    // ⑤ Recent resets — read from today's storage
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    chrome.storage.local.get(today, (result) => {
+      const rec = result[today];
+      const resetLog = rec && rec.resetLog ? rec.resetLog : [];
+      const recentEl = document.getElementById('recent-resets');
+      const listEl = document.getElementById('recent-resets-list');
+      if (listEl && resetLog.length > 0) {
+        const RESET_ICONS = { eye: '👁️', stretch: '🧘', mental: '🧠', energy: '⚡' };
+        const last3 = resetLog.slice(-3).reverse();
+        listEl.innerHTML = last3.map((r) => {
+          const t = new Date(r.time);
+          const timeStr = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const icon = RESET_ICONS[r.type] || '🌿';
+          const label = r.type ? (r.type.charAt(0).toUpperCase() + r.type.slice(1)) : 'Reset';
+          return `<div class="reset-chip">${icon} ${label} <span class="reset-chip-time">${timeStr}</span></div>`;
+        }).join('');
+        if (recentEl) recentEl.style.display = 'block';
+      }
+    });
+
     // Wellness Reset button
     const btn = document.getElementById('start-reset-btn');
     if (btn) {
@@ -109,22 +183,81 @@
     });
   }
 
+
   function updateRing(pct) {
-    const ring = document.getElementById('fatigue-ring');
     const scoreEl = document.getElementById('fatigue-score');
     const stateEl = document.getElementById('fatigue-state-text');
-    if (!ring) return;
+    const ringFill = document.getElementById('ring-fill');
+    const ringFillGlow = document.getElementById('ring-fill-glow');
+    const ringTip = document.getElementById('ring-tip');
+    const ringHalo = document.getElementById('ring-glow-halo');
 
-    ring.style.setProperty('--ring-progress', `${pct}%`);
+    // SVG circumference for r=58: 2*PI*58 ≈ 364.4
+    const CIRC = 364.4;
+    const dashOffset = CIRC * (1 - pct / 100);
 
-    let color = 'var(--accent)';
-    let text = 'In the Flow';
-    if (pct > 75) { color = '#f56565'; text = 'Time for a reset'; }
-    else if (pct > 45) { color = '#f6ad55'; text = 'Focus dipping — pause soon'; }
+    if (ringFill) {
+      ringFill.style.strokeDashoffset = dashOffset;
+    }
+    if (ringFillGlow) {
+      ringFillGlow.style.strokeDashoffset = dashOffset;
+    }
 
-    ring.style.setProperty('--ring-color', color);
-    if (scoreEl) scoreEl.textContent = pct;
-    if (stateEl) stateEl.textContent = text;
+    // Rotate tip dot to track arc end: -90deg base + pct*3.6deg
+    if (ringTip) {
+      const deg = (pct / 100) * 360 - 90;
+      const rad = (deg * Math.PI) / 180;
+      // tip starts at (70, 12) — top of the circle
+      // SVG has transform-origin on the circle center (70,70)
+      ringTip.setAttribute('transform', `rotate(${(pct / 100) * 360} 70 70)`);
+    }
+
+    // Color based on fatigue level
+    let accentColor, accentB, glowColor, stateText;
+    if (pct > 75) {
+      accentColor = '#f56565';
+      accentB = '#e53e3e';
+      glowColor = 'rgba(245, 101, 101, 0.35)';
+      stateText = 'Time for a reset';
+    } else if (pct > 45) {
+      accentColor = '#f6ad55';
+      accentB = '#ed8936';
+      glowColor = 'rgba(246, 173, 85, 0.35)';
+      stateText = 'Taking a toll';
+    } else {
+      accentColor = '#68d391';
+      accentB = '#4fd1c5';
+      glowColor = 'rgba(104, 211, 145, 0.35)';
+      stateText = 'In the Flow';
+    }
+
+    // Update SVG gradient stops
+    const grad = document.getElementById('ringGradient');
+    if (grad) {
+      grad.children[0].setAttribute('stop-color', accentColor);
+      grad.children[1].setAttribute('stop-color', accentB);
+    }
+
+    // Update tip & glow colors
+    if (ringTip) ringTip.setAttribute('fill', accentColor);
+    if (ringFillGlow) ringFillGlow.setAttribute('stroke', accentColor);
+
+    // Update halo glow color
+    if (ringHalo) {
+      ringHalo.style.background = `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`;
+    }
+
+    // Update state text color
+    if (stateEl) {
+      stateEl.textContent = stateText;
+      stateEl.style.color = accentColor;
+    }
+
+    // Update score number
+    if (scoreEl) {
+      scoreEl.textContent = pct;
+      scoreEl.style.color = pct > 75 ? accentColor : '';
+    }
   }
 
   // ── FOCUS VIEW ─────────────────────────────────────────────────────────

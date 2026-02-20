@@ -30,8 +30,21 @@
     }
 
     document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', () => showScreen(card.dataset.section));
+        card.addEventListener('click', () => {
+            const section = card.dataset.section;
+            showScreen(section);
+            logWellnessReset(section);
+        });
     });
+
+    // ── Log reset to background (for popup break history) ─────────────────────
+    function logWellnessReset(resetType) {
+        try {
+            chrome.runtime.sendMessage({ type: 'logReset', resetType, mood: null }, () => {
+                void chrome.runtime.lastError;
+            });
+        } catch (e) { /* extension context may be invalidated */ }
+    }
 
     document.querySelectorAll('.btn-back').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -126,14 +139,23 @@
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
-    function showToast(msg = 'Reset complete. Carry this calm with you.') {
+    function showToast(msg = 'Reset complete. Carry this calm with you.', resetType = null) {
         const t = document.getElementById('completion-toast');
+
         const m = document.getElementById('toast-msg');
         if (!t) return;
         if (m) m.textContent = msg;
         t.classList.add('toast--show');
         const id = setTimeout(() => t.classList.remove('toast--show'), 3500);
         registerTimer(id);
+        // ⑤ Save reset to storage so popup history can show it
+        if (resetType) {
+            try {
+                chrome.runtime.sendMessage({ type: 'logReset', resetType, mood: null }, () => {
+                    void chrome.runtime.lastError;
+                });
+            } catch (e) { /* ignore */ }
+        }
     }
 
     // ── Sound ─────────────────────────────────────────────────────────────────

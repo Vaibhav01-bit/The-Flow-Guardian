@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Flow Guardian</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
 </head>
 
 <body data-theme="forest-calm">
@@ -15,8 +19,12 @@
 
     <!-- Header -->
     <header class="app-header">
-      <div class="app-title">🌿 Flow Guardian</div>
+      <div class="app-title">
+        <span class="app-title-icon">🌿</span>
+        <span class="app-title-text">Flow Guardian</span>
+      </div>
       <div class="fatigue-badge" id="fatigue-badge" title="Current fatigue level">
+        <span class="badge-dot"></span>
         <span id="badge-score">0</span>%
       </div>
     </header>
@@ -65,10 +73,36 @@
         <!-- Circadian greeting -->
         <p class="greeting" id="greeting-text">Loading...</p>
 
-        <!-- Focus score ring -->
+        <!-- Focus score ring (SVG-based premium ring) -->
         <div class="ring-wrap">
-          <div class="fatigue-ring" id="fatigue-ring">
-            <div class="fatigue-ring-inner">
+          <div class="ring-glow-halo" id="ring-glow-halo"></div>
+          <div class="ring-container" id="fatigue-ring">
+            <svg class="ring-svg" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#68d391" />
+                  <stop offset="100%" stop-color="#4fd1c5" />
+                </linearGradient>
+                <filter id="ringGlow">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <!-- Track circle -->
+              <circle class="ring-track" cx="70" cy="70" r="58" />
+              <!-- Glow duplicate for blur effect -->
+              <circle class="ring-fill-glow" id="ring-fill-glow" cx="70" cy="70" r="58" transform="rotate(-90 70 70)"
+                filter="url(#ringGlow)" />
+              <!-- Main progress arc -->
+              <circle class="ring-fill" id="ring-fill" cx="70" cy="70" r="58" transform="rotate(-90 70 70)" />
+              <!-- Tip dot that follows the arc end -->
+              <circle class="ring-tip" id="ring-tip" cx="70" cy="12" r="4" />
+            </svg>
+            <!-- Inner face -->
+            <div class="ring-inner-face">
               <div class="score-wrap">
                 <span id="fatigue-score">0</span>
                 <span class="percent-sign">%</span>
@@ -98,6 +132,33 @@
         <div class="last-mood-row" id="last-mood-row" style="display:none;">
           <span class="last-mood-label">Last mood:</span>
           <span class="last-mood-emoji" id="last-mood-emoji"></span>
+        </div>
+
+        <!-- ① Mood input -->
+        <div class="mood-input-row" id="mood-input-row">
+          <span class="mood-input-label">How are you feeling?</span>
+          <div class="mood-btns">
+            <button class="mood-btn" data-mood="happy" title="Happy">😊</button>
+            <button class="mood-btn" data-mood="neutral" title="Neutral">😐</button>
+            <button class="mood-btn" data-mood="tired" title="Tired">😞</button>
+            <button class="mood-btn" data-mood="overwhelmed" title="Overwhelmed">😵</button>
+          </div>
+        </div>
+
+        <!-- ④ Fatigue-based suggestion -->
+        <div class="suggestion-banner" id="suggestion-banner" style="display:none;">
+          <span class="suggestion-icon" id="suggestion-icon">👁️</span>
+          <div class="suggestion-body">
+            <span class="suggestion-title" id="suggestion-title">Eyes tired?</span>
+            <span class="suggestion-sub" id="suggestion-sub">Try a quick Eye Reset</span>
+          </div>
+          <button class="suggestion-cta" id="suggestion-cta">Go →</button>
+        </div>
+
+        <!-- ⑤ Recent resets -->
+        <div class="recent-resets" id="recent-resets" style="display:none;">
+          <span class="recent-resets-label">Recent resets</span>
+          <div class="recent-resets-list" id="recent-resets-list"></div>
         </div>
 
         <!-- CTA -->

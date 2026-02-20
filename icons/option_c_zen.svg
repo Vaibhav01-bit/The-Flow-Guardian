@@ -1,0 +1,68 @@
+<!-- Option C: Meditation / zen circle with wave pulse line (EKG + zen) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bgC" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#142814"/>
+      <stop offset="100%" stop-color="#060d06"/>
+    </radialGradient>
+    <linearGradient id="zenGradC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#68d391"/>
+      <stop offset="100%" stop-color="#4fd1c5"/>
+    </linearGradient>
+    <filter id="zenGlowC" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="pulseGlowC" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgC)"/>
+
+  <!-- Subtle ambient glow -->
+  <circle cx="64" cy="64" r="36" fill="#68d391" fill-opacity="0.05"/>
+
+  <!-- Zen / ensō circle (open brush stroke look) -->
+  <g filter="url(#zenGlowC)">
+    <circle cx="64" cy="52" r="26"
+      fill="none"
+      stroke="url(#zenGradC)"
+      stroke-width="6.5"
+      stroke-linecap="round"
+      stroke-dasharray="148 16"
+      transform="rotate(110 64 52)"/>
+  </g>
+
+  <!-- Inner zen dot -->
+  <circle cx="64" cy="52" r="5.5" fill="url(#zenGradC)" filter="url(#pulseGlowC)"/>
+
+  <!-- EKG / heartbeat pulse line at the bottom -->
+  <g filter="url(#pulseGlowC)">
+    <path d="M 16,90 L 30,90 L 35,80 L 42,104 L 50,72 L 58,104 L 64,90 L 112,90"
+      fill="none"
+      stroke="url(#zenGradC)"
+      stroke-width="2.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+  </g>
+
+  <!-- Outer ring arcs -->
+  <circle cx="64" cy="64" r="58" fill="none" stroke="url(#zenGradC)"
+    stroke-width="1.3" stroke-opacity="0.3"
+    stroke-dasharray="100 130" stroke-linecap="round"
+    transform="rotate(20 64 64)"/>
+  <circle cx="64" cy="64" r="58" fill="none" stroke="url(#zenGradC)"
+    stroke-width="1.3" stroke-opacity="0.2"
+    stroke-dasharray="60 170" stroke-linecap="round"
+    transform="rotate(200 64 64)"/>
+
+  <!-- Corner accents -->
+  <circle cx="18" cy="64" r="1.8" fill="#68d391" opacity="0.35"/>
+  <circle cx="110" cy="64" r="1.8" fill="#4fd1c5" opacity="0.35"/>
+
+  <!-- Border -->
+  <circle cx="64" cy="64" r="63" fill="none" stroke="#68d391" stroke-width="0.8" stroke-opacity="0.2"/>
+</svg>

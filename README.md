@@ -21,7 +21,7 @@
 
 ## What's New in v2.0 — Wellness Reset 🌿
 
-The **Wellness Reset** is a full-page, guided reset experience that replaces the old single breathing screen. Click **🌿 Wellness Reset** in the popup to launch it.
+The **Wellness Reset** is a full-page, guided reset experience. Click **🌿 Wellness Reset** in the popup to launch it.
 
 | Section | Tools included |
 |---|---|
@@ -30,7 +30,17 @@ The **Wellness Reset** is a full-page, guided reset experience that replaces the
 | 🧠 **Mental** | 4-4-8 breathing canvas · Journaling prompts · 60-second focus countdown |
 | ⚡ **Energy** | Movement challenges · 5-0-5 energising breath · Hydration checklist |
 
-All tools run locally in your browser — no data is ever sent anywhere.
+### v2.1 — UX Improvements
+
+| # | Feature | Where |
+|---|---|---|
+| ① | **Mood input** — 4 emoji buttons log how you feel each session | Today tab |
+| ② | **Notification click** → opens Wellness Reset directly | System notifications |
+| ③ | **Real Insights charts** — 7-day focus score + hourly tab-switch graph | Insights tab |
+| ④ | **Smart suggestion** — fatigue ≥55 % auto-suggests the right reset type | Today tab |
+| ⑤ | **Break history** — shows last 3 completed resets with time | Today tab |
+
+All tools run locally — no data is ever sent anywhere.
 
 ---
 
