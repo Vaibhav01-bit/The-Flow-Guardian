@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "The Flow Guardian",
-  "version": "2.0",
+  "short_name": "Flow Guardian",
+  "version": "2.1",
   "description": "Your smart focus companion — adaptive fatigue scoring, circadian awareness, mood check, focus sessions, and gentle resets.",
   "permissions": [
     "tabs",
